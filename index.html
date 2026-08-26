@@ -2,1791 +2,2471 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nou Volei Alzira - Cartel de Resultados</title>
-    <!-- Enlace al archivo Manifest para PWA / APK -->
-    <link rel="manifest" href="manifest.json">
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <title>Nou Volei Alzira - Selección de Equipos</title>
+    <!-- Librería SheetJS (XLSX) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Librería html2canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        /* ==========================================================================
-           VARIABLES GLOBALES Y ESTILOS BASE
-           ========================================================================== */
-        :root {
-            --nva-primary: #d10000;
-            --nva-primary-hover: #ff1a1a;
-            --nva-bg-dark: #1a1a1a;
-            --nva-bg-black: #000000;
-            --nva-text: #ffffff;
-            --nva-success: #00ff66;
-            --nva-warning: #ff8800;
-            --nva-warning-hover: #ff9900;
-            --nva-btn-blue: #0088cc;
-            --nva-btn-blue-hover: #1aa3ff;
-            --nva-btn-green: #00aa00;
-            --nva-btn-green-hover: #00cc00;
-            --nva-btn-purple: #8e44ad;
-            --nva-btn-purple-hover: #9b59b6;
-        }
-
         * {
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html {
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+        body {
+            background-color: #000000;
+            color: #ffffff;
             margin: 0;
             padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overscroll-behavior-y: none;
         }
-
-        body {
-            background-color: var(--nva-bg-black);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            font-family: 'Arial Black', Impact, sans-serif;
-            color: var(--nva-text);
-            overflow-x: hidden;
-            width: 100vw;
+        button, [onclick], .cal-cell:not(.empty), .campo-editable-info, .nombre-equipo.campo-editable, .header-hotspot-calendario {
+            touch-action: manipulation;
         }
-
-        #capture-area {
-            width: 100%;
-            background-color: var(--nva-bg-black);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        body.modal-abierto {
+            overflow: hidden;
         }
-
-        /* ==========================================================================
-           BARRA FLOTANTE SUPERIOR DERECHA (CARGAR HISTORIAL)
-           ========================================================================== */
-        #top-loader-bar {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-family: Arial, sans-serif;
-            font-size: 13px;
-            z-index: 1000;
-            /*background: rgba(26, 26, 26, 0.85);
-            /*padding: 10px 15px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
-            /*backdrop-filter: blur(5px);*/
-        }
-
-        #btn-load-history {
-            color: var(--nva-text);
-            cursor: pointer;
-            background: var(--nva-btn-green);
-            padding: 8px 16px;
-            border-radius: 5px;
-            font-weight: bold;
-            /*border: 1px solid var(--nva-btn-green-hover);*/
-            transition: background 0.2s, transform 0.1s;
-            display: inline-block;
-            font-family: Arial, sans-serif;
-            font-size: 13px;
-            flex-shrink: 0;
-            white-space: nowrap;
-            shadow: 0 4px 15px rgba(0,0,0,0.8);
-            border-color: var(--nva-btn-green);
-        }
-
-        #btn-load-history:hover {
-            background: var(--nva-btn-green-hover);
-            border-color: var(--nva-btn-green-hover);
-            transform: scale(1.05);
-            color: #000000;
-        }
-
-        /* ==========================================================================
-           BARRA FLOTANTE INFERIOR DERECHA (ACCIONES DE CARTEL)
-           ========================================================================== */
-        #excel-loader-bar {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-family: Arial, sans-serif;
-            font-size: 13px;
-            z-index: 1000;
-            /*background: rgba(26, 26, 26, 0.85);
-            padding: 10px 15px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px);*/
-        }
-
-        .bar-actions {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        #excel-loader-bar button, #jpg-button, #btn-add-first, #btn-reset {
-            color: var(--nva-text);
-            cursor: pointer;
-            /*background: var(--nva-primary);*/
-            padding: 8px 16px;
-            border-radius: 5px;
-            font-weight: bold;
-            /*border: 1px solid var(--nva-primary-hover);*/
-            transition: background 0.2s, transform 0.1s;
-            display: inline-block;
-            font-family: Arial, sans-serif;
-            font-size: 13px;
-            flex-shrink: 0;
-            white-space: nowrap;
-        }
-
-        #btn-reset {
-            background: var(--nva-warning);
-            border-color: var(--nva-warning-hover);
-            display: none;
-        }
-
-        #btn-reset:hover {
-            background: var(--nva-primary-hover);
-            border-color: var(--nva-primary-hover);
-            transform: scale(1.05);
-            color: #000000;
-        }
-
-        #jpg-button {
-            background: var(--nva-btn-purple);
-            border-color: var(--nva-btn-purple-hover);
-        }
-
-        #btn-add-first {
-            background: var(--nva-btn-green);
-            border-color: var(--nva-btn-green-hover);
-            display: none;
-        }
-
-        #jpg-button:hover {
-            background: var(--nva-btn-blue-hover);
-            border-color: var(--nva-btn-blue-hover);
-            transform: scale(1.05);
-            color: #000000;
-        }
-
-        #btn-add-first:hover {
-            background: var(--nva-btn-green-hover);
-            transform: scale(1.05);
-            color: #000000;
-        }
-
-        /* ==========================================================================
-           BANNER CABECERA Y CONTENEDOR PRINCIPAL
-           ========================================================================== */
-        #header-banner {
+        
+        .header-container {
             position: relative;
             width: 100%;
-            line-height: 0;
+            cursor: default;
+            background-color: #000;
+            display: block;
         }
-
-        #header-banner img {
+        
+        .header-img {
             width: 100%;
             height: auto;
             display: block;
+            object-fit: contain;
         }
 
-        #clickable-calendar {
+        .header-hotspot-calendario {
             position: absolute;
-            bottom: 4%;
-            left: 22.5%;
-            width: 6%;
-            height: 18%;
+            top: 70%;
+            left: 54.5%;
+            width: 4.5%;
+            height: 20%;
             cursor: pointer;
             z-index: 10;
         }
 
-        #text-container {
+        .header-texto-fecha {
             position: absolute;
-            bottom: 4%;
-            left: 29.5%;
-            width: 68%;
-            height: 18%;
+            top: 70%;
+            left: 59%;
+            width: 36%;
+            height: auto;
+            color: #ffffff;
+            font-size: 2.5vw;
+            font-size: 2.5cqw;
+            font-weight: 600;
+            font-style: normal !important;
+            font-family: Arial, Helvetica, sans-serif;
+            text-transform: uppercase;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 15;
+            text-shadow: 2px 2px 6px rgba(0,0,0,0.9);
+            padding-left: 1vw;
+            padding-left: 1cqw;
+            padding-right: 1vw;
+            padding-right: 1cqw;
             display: flex;
             align-items: center;
-            overflow: hidden;
-            pointer-events: none;
-            z-index: 10;
+            overflow: visible;
         }
 
-        #date-text {
-            color: var(--nva-text);
-            font-style: italic;
-            font-weight: bold;
-            white-space: nowrap;
-            line-height: 1;
+        .header-texto-fecha span {
             display: inline-block;
+            white-space: nowrap;
             transform-origin: left center;
-            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.9);
-            text-transform: lowercase;
-            padding-right: 0.08em;
-            padding-left: 0.04em;
         }
 
-        #main-content {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 1vw;
-        }
-
-        /* ==========================================================================
-           TARJETAS DE PARTIDO
-           ========================================================================== */
-        .match-card-container {
-            position: relative;
-            width: 100%;
-            overflow: hidden;
-            background-color: var(--nva-bg-black);
-        }
-
-        .card-photo-layer {
-            position: absolute;
-            top: 2%;
-            right: 1.4%;
-            width: 46%;
-            height: 96%;
-            clip-path: polygon(12.7% 0%, 100% 0%, 100% 100%, 0% 100%);
-            background-color: #0a0a0a;
-            overflow: hidden;
-            display: flex;
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 9999;
             justify-content: center;
             align-items: center;
-            z-index: 1;
-            transition: background-color 0.2s, outline 0.2s;
         }
 
-        .card-bgb { 
-            position: relative; 
+        .modal-content {
+            background-color: #1a1a1a;
+            width: 92%;
+            max-width: 850px;
+            max-height: 85vh;
+            border: 2px solid #444;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+        }
+
+        .modal-header {
+            background-color: #242424;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #444;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.4em;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .header-botones {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-aceptar {
+            background-color: #0056b3;
+            color: white;
+            border: none;
+            padding: 8px 22px;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            .btn-aceptar:hover {
+                background-color: #004494;
+            }
+        }
+
+        .btn-reset {
+            background-color: #c82333;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            .btn-reset:hover {
+                background-color: #a71d2a;
+            }
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
+
+        /* Selector de Rango de Calendario */
+        .date-range-modal-content {
+            background-color: #181818;
+            border: 2px solid #00b0f0;
+            border-radius: 12px;
+            padding: 20px;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: 0 10px 35px rgba(0, 176, 240, 0.2);
+            color: #fff;
+        }
+
+        .cal-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .cal-nav button {
+            background: #242424;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            .cal-nav button:hover {
+                background: #00b0f0;
+                border-color: #00b0f0;
+            }
+        }
+
+        .cal-nav span {
+            font-size: 1.2em;
+            font-weight: bold;
+            text-transform: capitalize;
+        }
+
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            text-align: center;
+        }
+
+        .cal-day-name {
+            font-weight: bold;
+            color: #00b0f0;
+            padding: 8px 0;
+            font-size: 0.85em;
+        }
+
+        .cal-cell {
+            padding: 10px 0;
+            background: #222;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: background 0.15s, color 0.15s;
+            user-select: none;
+        }
+
+        .cal-cell.empty {
+            background: transparent;
+            cursor: default;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            .cal-cell:not(.empty):hover {
+                background: #333;
+                color: #00b0f0;
+            }
+        }
+
+        .cal-cell.selected-endpoint {
+            background: #00b0f0 !important;
+            color: #000 !important;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(0, 176, 240, 0.6);
+        }
+
+        .cal-cell.in-range {
+            background: rgba(0, 176, 240, 0.28) !important;
+            color: #ffffff !important;
+        }
+
+        table {
             width: 100%;
-            height: auto;
-            display: block;
-            z-index: 2;
-            pointer-events: none;
+            border-collapse: collapse;
+            color: #fff;
+            table-layout: auto;
         }
 
-        .card-bg, .card-outline {
+        th {
+            background-color: #2a2a2a;
+            padding: 14px 10px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 600;
+            border-bottom: 2px solid #444;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #333;
+            vertical-align: middle;
+        }
+        
+        .team-icon {
+            width: 45px;
+            height: 45px;
+            object-fit: contain;
+            background: transparent;
+            padding: 2px;
+        }
+
+        .btn-casa, .btn-fuera {
+            background-color: #2a2a2a;
+            color: #ccc;
+            border: 2px solid #444;
+            padding: 6px 14px;
+            margin-right: 4px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            .btn-casa:hover { background-color: #1e7e34; border-color: #1e7e34; color: #fff; }
+            .btn-fuera:hover { background-color: #bd2130; border-color: #bd2130; color: #fff; }
+        }
+
+        /* Sombreados de fila seleccionada más tenues */
+        tr.selected-casa { background-color: rgba(40, 167, 69, 0.08); }
+        tr.selected-casa .btn-casa { background-color: #28a745; border-color: #28a745; color: #fff; }
+
+        tr.selected-fuera { background-color: rgba(220, 53, 69, 0.08); }
+        tr.selected-fuera .btn-fuera { background-color: #dc3545; border-color: #dc3545; color: #fff; }
+        
+        .acciones-td { white-space: nowrap; }
+
+        .aviso-datos {
+            background: #18222c;
+            border-left: 4px solid #00bfff;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            color: #bce8ff;
+            border-radius: 4px;
+        }
+
+        /* Recuadros de partido */
+        #contenedorRecuadros {
+            width: 100%;
+            padding-top: 1vh;
+            padding-bottom: 3vh;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5vh;
+        }
+
+        .recuadro-partido {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 100 / 16.23;
+            container-type: inline-size;
+            overflow: hidden;
+        }
+
+        .recuadro-partido .capa-fondo {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
+            object-fit: fill;
             display: block;
-            pointer-events: none;
         }
 
-        .card-bg { z-index: 6; transition: filter 0.2s ease; }
-        .card-outline { z-index: 7; opacity: 0.8; mix-blend-mode: multiply; }
-
-        .btn-delete-card {
+        .recuadro-partido .capa-borde {
             position: absolute;
-            top: 1.5%;
-            right: 1%;
-            width: clamp(22px, 2.8vw, 38px);
-            height: clamp(22px, 2.8vw, 38px);
-            background: rgba(180, 0, 0, 0.9);
-            color: var(--nva-text);
-            border: 2px solid var(--nva-text);
-            border-radius: 50%;
-            font-family: Arial, sans-serif;
-            font-weight: bold;
-            font-size: clamp(12px, 1.6vw, 20px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 50;
-            line-height: 1;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s;
-        }
-
-        .match-card-container:hover .btn-delete-card { opacity: 1; pointer-events: auto; }
-        .btn-delete-card:hover { background-color: #ff0000; transform: scale(1.15); }
-
-        .btn-add-card-below {
-            position: absolute;
-            bottom: 2%;
-            left: 1.5%;
-            width: clamp(28px, 3.5vw, 46px);
-            height: clamp(28px, 3.5vw, 46px);
-            background: rgba(0, 150, 0, 0.9);
-            color: var(--nva-text);
-            border: 2px solid var(--nva-text);
-            border-radius: 50%;
-            font-family: Arial, sans-serif;
-            font-weight: bold;
-            font-size: clamp(16px, 2.2vw, 26px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 50;
-            line-height: 1;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.8);
-        }
-
-        .match-card-container:hover .btn-add-card-below { opacity: 1; pointer-events: auto; }
-        .btn-add-card-below:hover { background-color: #00ff00; color: #000; transform: scale(1.15); }
-
-        .photo-img {
-            flex-shrink: 0;
-            display: none;
+            top: 0;
+            left: 0;
+            width: 100%;
             height: 100%;
-            width: auto;
-            object-fit: cover;
-            transform-origin: center center;
-            touch-action: none;
-            cursor: grab;
-            user-select: none;
-        }
-
-        .photo-img:active {
-            cursor: grabbing;
-        }
-
-        .photo-placeholder {
-            color: #aaaaaa;
-            font-family: Arial, sans-serif;
-            font-size: clamp(11px, 1.6vw, 18px);
-            font-weight: bold;
-            text-align: center;
-            padding: 10px;
+            -webkit-mask-image: var(--mask-img);
+            mask-image: var(--mask-img);
+            -webkit-mask-size: 100% 100%;
+            mask-size: 100% 100%;
+            -webkit-mask-repeat: no-repeat;
+            mask-repeat: no-repeat;
+            background-color: var(--color-equipo, #00b0f0);
             pointer-events: none;
-            cursor: pointer;
         }
 
-        .text-overlay {
+        .texto-categoria-vertical {
             position: absolute;
-            font-style: italic;
-            font-weight: 1200;
-            text-transform: uppercase;
+            top: 0;
+            left: 0.2;
+            width: 6.5%;
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 7;
-            transition: background-color 0.2s, outline 0.2s;
+            color: #000000;
+            font-weight: 800;
+            font-style: italic;
+            text-transform: uppercase;
+            font-size: 2.2cqw;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            z-index: 5;
+            pointer-events: none;
+            user-select: none;
+            text-shadow: 0.05em 0.05em 0.2em rgba(255,255,255,0.9);
+        }
+        /*----------------------------------------------------------------------------------------------------------------------------------------------------------*/
+        .contenido-recuadro {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
         }
 
-        .text-category {
-            top: 4.2%; left: 3%; width: 33%; height: 7%;
-            color: var(--nva-text); font-size: clamp(12px, 2.6vw, 48px);
-            justify-content: flex-start; padding-left: 0.3vw;
-            user-select: none; white-space: nowrap; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        .area-equipo-izq {
+            position: absolute;
+            top: 10%;
+            left: 6.5%;
+            width: 17.5%;
+            height: 80%;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            overflow: visible;
         }
 
-        .badge-slot {
-            position: absolute; top: 13.5%; width: 15%; aspect-ratio: 1;
-            z-index: 3;
-            display: flex; align-items: center; justify-content: center; pointer-events: auto;
-            transition: background-color 0.2s, outline 0.2s;
-        }
-
-        .badge-slot img { width: 100%; height: 100%; object-fit: contain; display: none; }
-        .badge-home { left: 2.2%; }
-        .badge-away { right: 47.2%; }
-
-        .text-score-home, .text-score-away {
-            position: absolute; top: 20%; width: 11%; height: 45%;
-            line-height: 1; 
-            color: var(--nva-text);
-            text-shadow: 4px 4px 10px rgba(0, 0, 0, 0.95); cursor: pointer;
-            z-index: 4;
-            display: flex; align-items: center; justify-content: center;
-            white-space: nowrap; user-select: none;
+        .area-logo-izq {
+            position: absolute;
+            top: 13%;
+            right:66.5%; /*left: 24.5%;*/
+            width: 11%; /*width: 9%;*/
+            height: 74%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             overflow: hidden;
-            transition: background-color 0.2s, outline 0.2s;
         }
 
-        .score-inner-text {
-            display: inline-block;
-            line-height: 1;
-            transform-origin: center center;
-            white-space: nowrap;
+        .area-logo-der {
+            position: absolute;
+            top: 13%;
+            left: 37.5%;
+            width: 11%;
+            height: 74%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
         }
 
-        .text-score-home { right: 75%; }
-        .text-score-away { left: 30%; }
-
-        .text-score-divider {
-            position: absolute; top: 20%; left: 25%; width: 5%; height: 30%;
-            font-size: clamp(32px, 10vw, 240px); transform: scaleY(1.5);
-            transform-origin: center center; color: var(--nva-text);
-            display: flex; align-items: center; justify-content: center;
-            pointer-events: none; z-index: 4;
+        .area-equipo-der {
+            position: absolute;
+            top: 10%;
+            left: 47%;
+            width: 17.5%;
+            height: 80%;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            overflow: visible;
         }
 
-        .team-container {
-            position: absolute; top: 63%; left: 26.2%; width: 20%; height: 30%; cursor: pointer; z-index: 5;
-            background: transparent;
-            border: none; outline: none; display: flex; align-items: center;
-            justify-content: center; overflow: hidden; text-align: center;
-            transition: background-color 0.2s, outline 0.2s;
-        }
-
-        .team-inner-text {
-            display: inline-block; line-height: 1.05; word-wrap: break-word; overflow-wrap: break-word;
-            white-space: normal; transform-origin: center center; text-shadow: 2px 2px 6px rgba(0,0,0,0.9);
-            padding-right: 0.8em; padding-left: 0.6em;
-        }
-
-        /* ==========================================================================
-           VENTANAS MODALES (ESTILOS GENERALES)
-           ========================================================================== */
-        .modal {
-            display: none; position: fixed; z-index: 1000; left: 0; top: 0;
-            width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.85);
-            justify-content: center; align-items: center;
-        }
-
-        .modal-box {
-            background-color: var(--nva-bg-dark); border: 2px solid #555; padding: 24px;
-            border-radius: 10px; width: 90%; max-width: 480px; color: var(--nva-text);
-            font-family: Arial, sans-serif; text-align: center; box-shadow: 0 5px 25px rgba(0, 0, 0, 0.8);
-        }
-
-        .modal-box h3 { margin-bottom: 15px; font-size: 20px; }
-
-        .calendar-container { width: 100%; font-family: Arial, sans-serif; color: #fff; }
-        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .calendar-header button { background: #333; color: #fff; border: 1px solid #555; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .calendar-header button:hover { background: var(--nva-primary); border-color: var(--nva-primary-hover); }
-
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 15px; }
-        .calendar-day-name { font-size: 11px; color: #888; font-weight: bold; text-align: center; padding-bottom: 5px; }
-        .calendar-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #252525; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; user-select: none; transition: background 0.15s, color 0.15s; }
-        .calendar-day:hover { background: #444; }
-        .calendar-day.empty { background: transparent; cursor: default; }
-        .calendar-day.selected { background: var(--nva-primary) !important; color: var(--nva-text) !important; }
-        .calendar-day.in-range { background: rgba(209, 0, 0, 0.35); color: var(--nva-text); border-radius: 0; }
-        .calendar-info { font-size: 12px; color: #aaa; margin-bottom: 15px; min-height: 18px; }
-
-        .score-options-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 15px; }
-        .score-option-btn { background: #292929; color: var(--nva-text); border: 2px solid #444; padding: 15px 0; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 24px; font-family: 'Arial Black', Impact, sans-serif; transition: background 0.2s, border-color 0.2s, transform 0.1s; }
-        .score-option-btn:hover { background: var(--nva-primary); border-color: var(--nva-primary-hover); transform: scale(1.05); }
-
-        .modal-tabs { display: flex; gap: 5px; margin-bottom: 12px; border-bottom: 1px solid #444; padding-bottom: 8px; }
-        .modal-tab-btn { flex: 1; background: #252525; color: #aaa; border: 1px solid #444; padding: 8px; border-radius: 5px 5px 0 0; cursor: pointer; font-weight: bold; font-size: 12px; transition: background 0.2s, color 0.2s, border-color 0.2s; }
-        .modal-tab-btn.active { background: var(--nva-primary); color: #fff; border-color: var(--nva-primary-hover); }
-
-        .team-options-list { display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto; margin-bottom: 16px; }
-        .team-option-btn { background: #292929; color: var(--nva-text); border: 1px solid #444; padding: 10px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s, border-color 0.2s; text-align: left; }
-        .team-option-btn:hover { background: #3d3d3d; border-color: var(--nva-success); }
-
-        .custom-input { width: 100%; padding: 10px; background: #252525; border: 1px solid #555; color: #fff; border-radius: 5px; font-size: 15px; margin-bottom: 15px; }
-        .btn-modal-action { background-color: var(--nva-primary); color: var(--nva-text); padding: 10px 24px; border: none; border-radius: 5px; font-size: 15px; font-weight: bold; cursor: pointer; }
-        .btn-modal-action:hover { background-color: var(--nva-primary-hover); }
-
-        /* EFECTOS GLOW RESULTADOS */
-        .glow-winner {
-            text-shadow: 0.2vw 0.2vw 0.5vw rgba(0,0,0,0.9), 0 0 2.5vw rgba(0, 255, 0, 0.9), 0 0 1vw rgba(0, 255, 0, 1) !important;
-            transition: text-shadow 0.3s ease;
-        }
-
-        .glow-loser {
-            text-shadow: 0.2vw 0.2vw 0.5vw rgba(0,0,0,0.9), 0 0 2.5vw rgba(255, 0, 0, 0.9), 0 0 1vw rgba(255, 0, 0, 1) !important;
-            transition: text-shadow 0.3s ease;
-        }
-
-        .glow-winner-img {
-            filter: drop-shadow(0 0 0.4vw rgba(0, 255, 0, 1)) drop-shadow(0 0 0.8vw rgba(0, 255, 0, 0.7)) !important;
-            transition: filter 0.3s ease;
-        }
-
-        .glow-loser-img {
-            filter: drop-shadow(0 0 0.4vw rgba(255, 0, 0, 1)) drop-shadow(0 0 0.8vw rgba(255, 0, 0, 0.7)) !important;
-            transition: filter 0.3s ease;
-        }
-
-        /* ==========================================================================
-           MODAL DE SELECCIÓN DE HISTORIAL DE TXT
-           ========================================================================== */
-        .history-dates-list {
+        .area-info {
+            position: absolute;
+            top: 10%;
+            left: 66%;
+            width: 31%;
+            height: 80%;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            max-height: 50vh;
-            overflow-y: auto;
-            overflow-x: hidden; /* <--- Añadir esta línea */
-            margin-top: 15px;
-            padding: 4px;       /* <--- Opcional: da espacio para que el scale no corte los bordes */
+            justify-content: center;
+            gap: 1vw;
+            gap: 1cqw;
+            padding-left: 1vw;
+            padding-left: 1cqw;
+            padding-right: 1vw;
+            padding-right: 1cqw;
         }
 
-        .history-date-btn {
-            background: #252525;
-            color: var(--nva-text);
-            border: 1px solid #444;
-            padding: 12px 16px;
-            border-radius: 6px;
+        .logo-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            background: transparent;
+        }
+
+        .nombre-equipo {
+            font-weight: 750;
+            font-style: italic;
+            text-transform: uppercase;
+            font-size: 2.3cqw;
+            line-height: 0.95;
+            color: #ffffff;
+            white-space: normal; 
+            word-break: normal;
+            display: block;
+            width: 100%;
+            max-height: 100%;
+            justify-content: flex-end;
+            overflow: visible;
+            padding: 0.2em 0.3em !important; /* Ligeramente más ancho a los lados */
+            box-sizing: content-box;
+        }
+
+        .area-equipo-izq .nombre-equipo {
+            text-align: right;
+        }
+
+        .area-equipo-der .nombre-equipo {
+            text-align: left;
+        }
+
+        .nombre-equipo.campo-editable {
             cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .nombre-equipo.campo-editable:hover {
+                color: #00b0f0;
+            }
+        }
+        .nombre-equipo.vacio {
+            color: #999;
+        }
+
+        .contenedor-item-info {
+            position: relative;
+            width: 100%;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            transition: background 0.2s, border-color 0.2s, transform 0.1s;
+            overflow: hidden;
         }
 
-        .history-date-btn:hover {
-            background: var(--nva-btn-purple);
-            border-color: var(--nva-btn-purple-hover);
-            transform: scale(1.02);
+        .campo-editable-info {
+            font-weight: 750;
+            font-style: italic;
+            text-transform: uppercase;
+            color: #fff;
+            font-size: 3vw;
+            font-size: 3cqw;
+            line-height: 1;
+            outline: none;
+            cursor: pointer;
+            white-space: nowrap;
+            display: inline-block;
+            transform-origin: left center;
+            width: auto;
+        }
+        .campo-editable-info.editable-texto {
+            cursor: text;
+        }
+        .campo-editable-info:focus {
+            color: #00b0f0;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .campo-editable-info:hover {
+                color: #00b0f0;
+            }
+        }
+        .campo-editable-info.vacio {
+            color: #888;
         }
 
-        .history-date-badge {
-            background: rgba(255, 255, 255, 0.15);
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 12px;
+        .input-picker-oculto {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            pointer-events: none;
+            z-index: -1;
+            font-size: 16px;
+        }
+
+        .oculto-temporal-captura {
+            visibility: hidden !important;
+        }
+
+        .btn-captura-pagina {
+            position: fixed;
+            right: calc(16px + env(safe-area-inset-right));
+            bottom: calc(16px + env(safe-area-inset-bottom));
+            z-index: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: #00b0f0;
+            color: #06202c;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 30px;
+            font-size: 0.95em;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+            touch-action: manipulation;
+            transition: background-color 0.2s, transform 0.15s, opacity 0.2s;
+        }
+        .btn-captura-pagina svg {
+            flex-shrink: 0;
+        }
+        .btn-captura-pagina:active {
+            transform: scale(0.96);
+        }
+        .btn-captura-pagina:disabled {
+            opacity: 0.6;
+            cursor: default;
+            transform: none;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .btn-captura-pagina:hover {
+                background-color: #33c2ff;
+            }
+        }
+        @media (max-width: 480px) {
+            .btn-captura-pagina {
+                padding: 10px 14px;
+                font-size: 0.8em;
+            }
+        }
+
+        .btn-guardar-historico {
+            position: fixed;
+            right: calc(16px + env(safe-area-inset-right));
+            bottom: calc(16px + env(safe-area-inset-bottom) + 62px);
+            z-index: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: #28a745;
+            color: #ffffff;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 30px;
+            font-size: 0.95em;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+            touch-action: manipulation;
+            transition: background-color 0.2s, transform 0.15s, opacity 0.2s;
+        }
+        .btn-guardar-historico svg {
+            flex-shrink: 0;
+        }
+        .btn-guardar-historico:active {
+            transform: scale(0.96);
+        }
+        .btn-guardar-historico:disabled {
+            opacity: 0.6;
+            cursor: default;
+            transform: none;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .btn-guardar-historico:hover {
+                background-color: #34c759;
+            }
+        }
+        @media (max-width: 480px) {
+            .btn-guardar-historico {
+                padding: 10px 14px;
+                font-size: 0.8em;
+                bottom: calc(16px + env(safe-area-inset-bottom) + 54px);
+            }
+        }
+
+        .selector-hora-wrap {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            padding: 20px 0;
+        }
+        .col-select {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .col-select label {
+            font-size: 0.9em;
+            color: #aaa;
+            font-weight: bold;
+        }
+        .select-custom {
+            background-color: #242424;
+            color: #fff;
+            border: 2px solid #00b0f0;
+            border-radius: 6px;
+            padding: 10px 16px;
+            font-size: 1.5em;
+            font-weight: bold;
+            outline: none;
+            cursor: pointer;
+        }
+        .select-custom option {
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+
+        /* Modal Rivales */
+        .item-rival {
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            border-left: 4px solid transparent;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .item-rival:hover {
+                background-color: rgba(255, 255, 255, 0.08);
+            }
+        }
+        .fila-misma-categoria {
+            background: linear-gradient(90deg, rgba(40, 167, 69, 0.15) 0%, rgba(40, 167, 69, 0.02) 100%) !important;
+            border-left: 4px solid #28a745 !important;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .fila-misma-categoria:hover {
+                background: linear-gradient(90deg, rgba(40, 167, 69, 0.3) 0%, rgba(40, 167, 69, 0.08) 100%) !important;
+            }
+        }
+        .badge-cat-misma {
+            display: inline-block;
+            background-color: rgba(40, 167, 69, 0.2);
+            color: #51e879;
+            border: 1px solid rgba(40, 167, 69, 0.5);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.85em;
+        }
+        .badge-cat-sin {
+            color: #777;
+            font-style: italic;
+            font-size: 0.85em;
+        }
+
+        /* Input de edición de rival */
+        .input-modal-texto {
+            width: 100%;
+            background: #242424;
+            color: #fff;
+            border: 2px solid #00b0f0;
+            border-radius: 6px;
+            padding: 12px 14px;
+            font-size: 1.1em;
+            font-weight: bold;
+            outline: none;
+            box-sizing: border-box;
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 600px) {
+            .modal-content {
+                width: 96% !important;
+                margin: auto;
+            }
+
+            .modal-header {
+                padding: 10px 12px;
+            }
+
+            .modal-header h2 {
+                font-size: 1.1em;
+            }
+
+            .modal-body {
+                padding: 8px 4px;
+            }
+
+            table {
+                width: 100%;
+                table-layout: auto;
+            }
+
+            th, td {
+                padding: 6px 3px !important;
+                font-size: 0.8em;
+            }
+
+            .team-icon {
+                width: 28px !important;
+                height: 28px !important;
+            }
+
+            .btn-casa, .btn-fuera {
+                padding: 4px 5px !important;
+                margin: 0 1px !important;
+                font-size: 0.72em !important;
+                border-width: 1.5px;
+            }
+
+            .acciones-td {
+                white-space: nowrap;
+                padding-left: 2px !important;
+                padding-right: 2px !important;
+            }
         }
     </style>
 </head>
 <body>
 
-    <!-- Botón flotante superior derecho para Cargar Historial -->
-    <div id="top-loader-bar">
-        <button id="btn-load-history">📂 Cargar historial</button>
-        <input type="file" id="txt-file-input" accept=".txt" style="display: none;">
+    <div id="areaCaptura" style="background-color: #000000; width: 100%; overflow: hidden;">
+        <div class="header-container" id="cabeceraContainer">
+            <img src="Imagenes/Titulo Base.png" class="header-img" alt="Nou Volei Alzira Calendario">
+            <div class="header-hotspot-calendario" onclick="abrirCalendarioRango()" title="Haz clic para seleccionar el rango de fechas"></div>
+            <div class="header-texto-fecha" id="headerTextoFecha"></div>
+        </div>
+
+        <div id="contenedorRecuadros"></div>
     </div>
 
-    <!-- Barra flotante de acciones en la esquina inferior derecha -->
-    <div id="excel-loader-bar">
-        <div class="bar-actions">
-            <button id="btn-reset">🔄 RESET</button>
-            <button id="btn-add-first">➕ NUEVO RECUADRO</button>
-            <button id="jpg-button">📥 DESCARGAR JPG</button>
+    <!-- Modal Rango de Fechas -->
+    <div class="modal-overlay" id="modalDateRange">
+        <div class="date-range-modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 10px;">
+                <span style="font-weight: bold; color: #00b0f0; font-size: 1.1em;">Seleccionar Fechas</span>
+                <button type="button" class="btn-aceptar" style="padding: 5px 15px; font-size: 0.9em;" onclick="confirmarRangoActual()">CONFIRMAR</button>
+            </div>
+            <div class="cal-nav">
+                <button type="button" onclick="cambiarMesRango(-1)">&lt;</button>
+                <span id="calMesAnioLabel">Mes Año</span>
+                <button type="button" onclick="cambiarMesRango(1)">&gt;</button>
+            </div>
+            <div class="cal-grid">
+                <div class="cal-day-name">Lu</div>
+                <div class="cal-day-name">Ma</div>
+                <div class="cal-day-name">Mi</div>
+                <div class="cal-day-name">Ju</div>
+                <div class="cal-day-name">Vi</div>
+                <div class="cal-day-name">Sá</div>
+                <div class="cal-day-name">Do</div>
+            </div>
+            <div class="cal-grid" id="calDiasGrid"></div>
         </div>
     </div>
 
-    <!-- Contenedor del área capturable -->
-    <div id="capture-area">
-        <header id="header-banner">
-            <img id="bg-image" src="Imagenes/TITULO.png" alt="Nou Volei Alzira">
-            <div id="clickable-logo" title="Banner superior"></div>
-            <div id="clickable-calendar" title="Haz clic para seleccionar el rango de fechas"></div>
-            <div id="text-container">
-                <span id="date-text"></span>
-            </div>
-        </header>
-
-        <main id="main-content"></main>
-    </div>
-
-    <!-- Modal Calendario Banner Superior -->
-    <div id="calendarModal" class="modal">
-        <div class="modal-box" style="max-width: 380px;">
-            <h3>Seleccionar Rango de Fechas</h3>
-            <div class="calendar-container">
-                <div class="calendar-header">
-                    <button id="prevMonthBtn">&lt;</button>
-                    <span id="calendarMonthTitle" style="font-weight: bold; font-size: 15px; text-transform: capitalize;"></span>
-                    <button id="nextMonthBtn">&gt;</button>
+    <!-- Modal Selección Principal -->
+    <div class="modal-overlay" id="modalEquipos">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Selección de equipos</h2>
+                <div class="header-botones">
+                    <button class="btn-reset" onclick="resetearSeleccion()">RESET</button>
+                    <button class="btn-aceptar" onclick="confirmarSeleccion()">ACEPTAR</button>
                 </div>
-                <div class="calendar-grid" id="calendarGridDaysNames">
-                    <div class="calendar-day-name">L</div>
-                    <div class="calendar-day-name">M</div>
-                    <div class="calendar-day-name">X</div>
-                    <div class="calendar-day-name">J</div>
-                    <div class="calendar-day-name">V</div>
-                    <div class="calendar-day-name">S</div>
-                    <div class="calendar-day-name">D</div>
+            </div>
+            <div class="modal-body">
+                <div id="avisoEstado" class="aviso-datos" style="display: none;"></div>
+                <table id="tablaEquipos">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">Logo</th>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th style="text-align: center;">Juega</th>
+                        </tr>
+                    </thead>                            
+                    <tbody id="tablaBody">
+                        <tr>
+                            <td colspan="4" style="text-align:center; padding: 25px; color: #888;">
+                                Cargando equipos...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Rivales -->
+    <div class="modal-overlay" id="modalRivales">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Seleccionar Equipo Rival</h2>
+                <button class="btn-aceptar" onclick="cerrarModalRivales()">CERRAR</button>
+            </div>
+            <div class="modal-body">
+                <table id="tablaRivales">
+                    <thead>
+                        <tr>
+                            <th style="width: 70px;">Logo</th>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaRivalesBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Modificar Rival Distinta Categoría -->
+    <div class="modal-overlay" id="modalEditarRival">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <h2>Modificar Nombre de Rival</h2>
+            </div>
+            <div class="modal-body">
+                <p style="color: #bbb; font-size: 0.9em; margin-top: 0;">El equipo seleccionado no pertenece exactamente a la misma categoría. Puedes modificar su nombre antes de agregarlo:</p>
+                <div style="margin: 15px 0;">
+                    <input type="text" id="inputEditarNombreRival" class="input-modal-texto" autocomplete="off" />
                 </div>
-                <div class="calendar-grid" id="calendarDaysGrid"></div>
-                <div class="calendar-info" id="calendarInfoText">Haz clic en el día de inicio</div>
-            </div>
-            <button id="applyCalendarButton" class="btn-modal-action" disabled style="opacity: 0.5; cursor: not-allowed;">Aplicar Fechas</button>
-        </div>
-    </div>
-
-    <!-- Modal selección de tanteo -->
-    <div id="scoreModal" class="modal">
-        <div class="modal-box">
-            <h3 id="scoreModalTitle">Seleccionar Tanteo</h3>
-            <div class="score-options-grid">
-                <button class="score-option-btn" data-value="0">0</button>
-                <button class="score-option-btn" data-value="1">1</button>
-                <button class="score-option-btn" data-value="2">2</button>
-                <button class="score-option-btn" data-value="3">3</button>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                    <button class="btn-reset" style="background-color: #555;" onclick="cerrarModalEditarRival()">CANCELAR</button>
+                    <button class="btn-aceptar" onclick="confirmarEdicionRival()">APLICAR</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal selección de equipos -->
-    <div id="teamPickerModal" class="modal">
-        <div class="modal-box">
-            <h3 id="modalTeamTitle">Seleccionar Equipo</h3>
-            <div class="modal-tabs">
-                <button id="tabNvaBtn" class="modal-tab-btn active">Equipos NVA</button>
-                <button id="tabOthersBtn" class="modal-tab-btn">Otros Equipos</button>
+    <!-- Modal Selector de Hora -->
+    <div class="modal-overlay" id="modalHora">
+        <div class="modal-content" style="max-width: 380px;">
+            <div class="modal-header">
+                <h2>Seleccionar Hora</h2>
+                <button class="btn-aceptar" onclick="confirmarHoraModal()">ACEPTAR</button>
             </div>
-            <div class="team-options-list" id="teamListContainer"></div>
-            <div style="border-top: 1px solid #444; padding-top: 12px;">
-                <input type="text" id="customTeamInput" class="custom-input" placeholder="O escribir nombre de equipo rival...">
-                <button id="applyCustomTeamBtn" class="btn-modal-action" style="background-color: #444;">Aplicar Rival</button>
+            <div class="modal-body">
+                <div class="selector-hora-wrap">
+                    <div class="col-select">
+                        <label for="selectHoras">HORA</label>
+                        <select id="selectHoras" class="select-custom"></select>
+                    </div>
+                    <span style="font-size: 2em; font-weight: bold; margin-top: 20px;">:</span>
+                    <div class="col-select">
+                        <label for="selectMinutos">MINUTOS</label>
+                        <select id="selectMinutos" class="select-custom">
+                            <option value="00" selected>00</option>
+                            <option value="15">15</option>
+                            <option value="30">30</option>
+                            <option value="45">45</option>
+                        </select>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Selección de Fechas del Historial TXT -->
-    <div id="historyModal" class="modal">
-        <div class="modal-box">
-            <h3>Seleccionar Fecha del Historial</h3>
-            <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;">Selecciona una de las 5 primeras jornadas para cargar sus partidos:</p>
-            <div class="history-dates-list" id="historyDatesContainer"></div>
-        </div>
-    </div>
+    <!-- Botón flotante -->
+    <button type="button" id="btnCapturarPagina" class="btn-captura-pagina no-captura" onclick="capturarPaginaComoJPG()" aria-label="Descargar imagen de los partidos">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+            <path d="M9 3l-1.83 2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2h-3.17L15 3H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+        </svg>
+        <span id="btnCapturarTexto">Descargar imagen</span>
+    </button>
 
-    <!-- Plantilla del cuadro sin elementos inferiores -->
-    <template id="card-template">
-        <div class="match-card-container">
-            <button class="btn-delete-card" title="Eliminar este recuadro">✕</button>
-            <button class="btn-add-card-below" title="Crear nuevo recuadro debajo">+</button>
-
-            <!-- Capa 1: Foto al fondo -->
-            <div class="card-photo-layer" title="Haz clic para subir foto. Arrastra para moverla y usa la rueda del ratón o pellizco para zoom. Doble clic para cambiar foto.">
-                <span class="photo-placeholder">📷 Clic para subir foto</span>
-                <img class="photo-img" src="" alt="Foto del partido">
-                
-                <input type="file" accept="image/*" style="display: none;">
-            </div>
-
-            <!-- Capa 2: Fondo 3D -->
-            <img class="card-bgb" src="Imagenes/Cuadro BASE (fondo).png" alt="Fondo 3D">
-            
-            <!-- Capa 3: Escudos / Logos -->
-            <div class="badge-slot badge-home">
-                <img src="" alt="Escudo Local">
-            </div>
-            <div class="badge-slot badge-away">
-                <img src="" alt="Escudo Visitante">
-            </div>
-
-            <!-- Capa 4: Resultados / Tanteo -->
-            <div class="text-score-home" title="Haz clic para cambiar tanteo local">
-                <span class="score-inner-text">0</span>
-            </div>
-            <div class="text-score-divider">-</div>
-            <div class="text-score-away" title="Haz clic para cambiar tanteo visitante">
-                <span class="score-inner-text">0</span>
-            </div>
-
-            <!-- Capa 5: Nombres de equipos y categoría -->
-            <div class="text-overlay text-category"></div>
-            <div class="text-overlay team-container team-home-container" title="Seleccionar Equipo de Casa">
-                <span class="team-inner-text">HOME</span>
-            </div>
-            <div class="text-overlay team-container team-away-container" title="Seleccionar Equipo de Visita">
-                <span class="team-inner-text">VISIT</span>
-            </div>
-
-            <!-- Capa 6: Cuadro BASE (marco) -->
-            <img class="card-bg" src="Imagenes/Cuadro BASE.png" alt="Fondo Marco" data-original-src="Imagenes/Cuadro BASE.png">
-
-            <!-- Capa 7: Cuadro BASE (sombra) -->
-            <img class="card-outline" src="Imagenes/Cuadro BASE (sombra).png" alt="Contorno 3D">
-        </div>
-    </template>
+    <!-- Botón flotante: Guardar histórico -->
+    <button type="button" id="btnGuardarHistorico" class="btn-guardar-historico no-captura" onclick="guardarHistorico()" aria-label="Guardar datos en el histórico">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+            <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+        </svg>
+        <span id="btnGuardarHistoricoTexto">Guardar histórico</span>
+    </button>
 
     <script>
-        // Configuración de áreas e interacciones
-        const CONFIG_AREA = { homeLeft: 4, homeWidth: 21, awayLeft: 30, awayWidth: 21, height: 28, bottomOffset: 16 };
-
-        let EQUIPOS_NVA_DATA = [
-            { LOGO: null, EQUIPO: "ALEVIN", CATEGORIA: "ALEVIN", COLOR: "008de9" },
-            { LOGO: null, EQUIPO: "ENOVA NVA", CATEGORIA: "INFANTIL 2ª DIVISION", COLOR: "dc6600" },
-            { LOGO: null, EQUIPO: "UP! SCHOOL NVA", CATEGORIA: "INFANTIL ZONAL", COLOR: "e9e300" },
-            { LOGO: null, EQUIPO: "JESSI ESPARZA NVA", CATEGORIA: "INFANTIL ZONAL", COLOR: "ffc547" },
-            { LOGO: null, EQUIPO: "ENOVA NVA", CATEGORIA: "CADETE 2ª DIVISION", COLOR: "fd008d" },
-            { LOGO: null, EQUIPO: "UP! SCHOOL NVA", CATEGORIA: "CADETE ZONAL", COLOR: "fa05e8" },
-            { LOGO: null, EQUIPO: "JESSI ESPARZA NVA", CATEGORIA: "CADETE ZONAL", COLOR: "fd75ea" },
-            { LOGO: null, EQUIPO: "ESPAI LABORAL NVA", CATEGORIA: "JUVENIL ZONAL", COLOR: "9a0dda" },
-            { LOGO: null, EQUIPO: "ENOVA NVA", CATEGORIA: "SENIOR 2ª DIVISION", COLOR: "b60809" },
-            { LOGO: null, EQUIPO: "ESCOLA NVA", CATEGORIA: "MIXTO", COLOR: "00cb00" },
-            { LOGO: null, EQUIPO: "CLUB NVA", CATEGORIA: "TODOS", COLOR: "0001e8" }
+        const equiposRespaldo = [
+            {"LOGO": "Enova NVA - Infantil", "EQUIPO": "ENOVA NVA", "CATEGORIA": "INFANTIL 2ª DIVISION", "COLOR": "#c28b06", "CAMPO": "PALAU D'ESPORTS (ALZIRA)"},
+            {"LOGO": "Up School NVA - Infantil", "EQUIPO": "UP! SCHOOL NVA", "CATEGORIA": "INFANTIL ZONAL", "COLOR": "#ccca20", "CAMPO": "PALAU D'ESPORTS (ALZIRA)"},
+            {"LOGO": "Jessi Esparza NVA - Infantil", "EQUIPO": "JESSI ESPARZA NVA", "CATEGORIA": "INFANTIL ZONAL", "COLOR": "#e8cb73", "CAMPO": "PALAU D'ESPORTS (ALZIRA)"},
+            {"LOGO": "Enova NVA - Cadet", "EQUIPO": "ENOVA NVA", "CATEGORIA": "CADETE 2ª DIVISION", "COLOR": "#b2267f", "CAMPO": "PALAU D'ESPORTS (ALZIRA)"},
+            {"LOGO": "Up School NVA - Cadet", "EQUIPO": "UP! SCHOOL NVA", "CATEGORIA": "CADETE ZONAL", "COLOR": "#b033af", "CAMPO": "PALAU D'ESPORTS (ALZIRA)"},
+            {"LOGO": "Jessi Esparza NVA - Cadet", "EQUIPO": "JESSI ESPARZA NVA", "CATEGORIA": "CADETE ZONAL", "COLOR": "#da71d9", "CAMPO": "PALAU D'ESPORTS (ALZIRA)"},
+            {"LOGO": "Espai Laboral - Juvenil", "EQUIPO": "ESPAI LABORAL NVA", "CATEGORIA": "JUVENIL ZONAL", "COLOR": "#7f1dbd", "CAMPO": "PALAU D'ESPORTS (ALZIRA)"},
+            {"LOGO": "Enova NVA - Senior", "EQUIPO": "ENOVA NVA", "CATEGORIA": "SENIOR 2ª DIVISION", "COLOR": "#a01525", "CAMPO": "PALAU D'ESPORTS (ALZIRA)"},
         ];
 
-        let OTROS_EQUIPOS_DATA = [];
+        let listaEquiposGlobal = [];
+        let listaOtrosEquiposGlobal = [];
+        let workbookGlobal = null;
+        const modal = document.getElementById('modalEquipos');
+        const modalRivales = document.getElementById('modalRivales');
+        const modalEditarRival = document.getElementById('modalEditarRival');
+        const modalHora = document.getElementById('modalHora');
+        const modalDateRange = document.getElementById('modalDateRange');
+        let elementoHoraActual = null;
 
-        // Referencias del DOM
-        const jpgButton = document.getElementById('jpg-button');
-        const btnAddFirst = document.getElementById('btn-add-first');
-        const btnReset = document.getElementById('btn-reset');
-        const calendarArea = document.getElementById('clickable-calendar');
-        const calendarModal = document.getElementById('calendarModal');
-        const applyCalendarButton = document.getElementById('applyCalendarButton');
-        const dateText = document.getElementById('date-text');
-        const textContainer = document.getElementById('text-container');
-        const mainContent = document.getElementById('main-content');
-        const cardTemplate = document.getElementById('card-template');
+        let datosCargados = false;
+        let elementoNombreRivalActual = null;
+        let elementoLogoRivalActual = null;
+        let recuadroPadreRivalActual = null;
+        let filaRivalPendienteEdicion = null;
 
-        // Referencias Historial TXT
-        const btnLoadHistory = document.getElementById('btn-load-history');
-        const txtFileInput = document.getElementById('txt-file-input');
-        const historyModal = document.getElementById('historyModal');
-        const historyDatesContainer = document.getElementById('historyDatesContainer');
-        let parsedHistoryGroups = [];
+        let contadorModalesAbiertos = 0;
+        let scrollYAntesDelModal = 0;
 
-        // Variables de estado
-        let calendarViewDate = new Date();
-        let selectedStartDate = null;
-        let selectedEndDate = null;
-        let currentActiveCard = null;
-        let currentTargetSide = 'home';
-        let activeModalTab = 'nva';
-        let currentScoreContainer = null;
-
-        // Referencias de Modales
-        const calendarMonthTitle = document.getElementById('calendarMonthTitle');
-        const calendarDaysGrid = document.getElementById('calendarDaysGrid');
-        const calendarInfoText = document.getElementById('calendarInfoText');
-        const prevMonthBtn = document.getElementById('prevMonthBtn');
-        const nextMonthBtn = document.getElementById('nextMonthBtn');
-        const teamPickerModal = document.getElementById('teamPickerModal');
-        const teamListContainer = document.getElementById('teamListContainer');
-        const customTeamInput = document.getElementById('customTeamInput');
-        const applyCustomTeamBtn = document.getElementById('applyCustomTeamBtn');
-        const modalTeamTitle = document.getElementById('modalTeamTitle');
-        const scoreModal = document.getElementById('scoreModal');
-        const scoreModalTitle = document.getElementById('scoreModalTitle');
-        const tabNvaBtn = document.getElementById('tabNvaBtn');
-        const tabOthersBtn = document.getElementById('tabOthersBtn');
-
-        const MONTH_NAMES = [
-            "enero", "febrero", "marzo", "abril", "mayo", "junio",
-            "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
-        ];
-
-        // === SISTEMA TOAST ===
-        function showToast(message, isError = false) {
-            const toast = document.createElement('div');
-            toast.textContent = message;
-            toast.style.cssText = `
-                position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-                background: ${isError ? '#b40000' : 'var(--nva-success)'}; color: ${isError ? '#fff' : '#000'};
-                padding: 10px 20px; border-radius: 8px; font-weight: bold; z-index: 9999;
-                box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-family: Arial, sans-serif; font-size: 14px;
-            `;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
+        function alAbrirModal() {
+            contadorModalesAbiertos++;
+            if (contadorModalesAbiertos === 1) {
+                scrollYAntesDelModal = window.scrollY || window.pageYOffset || 0;
+                document.body.classList.add('modal-abierto');
+                document.body.style.position = 'fixed';
+                document.body.style.top = `-${scrollYAntesDelModal}px`;
+                document.body.style.left = '0';
+                document.body.style.right = '0';
+                document.body.style.width = '100%';
+            }
         }
 
-        // === ESCALADO Y AUTOAJUSTE DEL TEXTO INTERIOR DEL TANTEO ===
-        function autoFitScoreText(scoreBox) {
-            if (!scoreBox) return;
-            const span = scoreBox.querySelector('.score-inner-text');
-            if (!span) return;
-
-            span.style.transform = 'none';
-
-            const contWidth = scoreBox.clientWidth;
-            const contHeight = scoreBox.clientHeight;
-            if (contWidth === 0 || contHeight === 0) return;
-
-            const baseFontSize = contHeight;
-            span.style.fontSize = `${baseFontSize}px`;
-
-            const textWidth = span.scrollWidth;
-            const textHeight = span.scrollHeight;
-
-            if (textWidth === 0 || textHeight === 0) return;
-
-            const aspectY = 1.5;
-
-            const maxScaleX = contWidth / textWidth;
-            const maxScaleY = contHeight / (textHeight * aspectY);
-            
-            const fitFactor = Math.min(maxScaleX, maxScaleY);
-
-            const finalScaleX = fitFactor;
-            const finalScaleY = fitFactor * aspectY;
-
-            span.style.transform = `scale(${finalScaleX}, ${finalScaleY})`;
+        function alCerrarModal() {
+            contadorModalesAbiertos = Math.max(0, contadorModalesAbiertos - 1);
+            if (contadorModalesAbiertos === 0) {
+                document.body.classList.remove('modal-abierto');
+                document.body.style.position = '';
+                document.body.style.top = '';
+                document.body.style.left = '';
+                document.body.style.right = '';
+                document.body.style.width = '';
+                window.scrollTo(0, scrollYAntesDelModal);
+            }
         }
 
-        // === SISTEMA DE GUARDADO LOCAL (LOCALSTORAGE) ===
-        function saveAppState() {
-            const state = {
-                dateText: document.getElementById('date-text').textContent,
-                cards: []
-            };
+        let mapaDatosPartidos = {};
+        const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
-            document.querySelectorAll('.match-card-container').forEach(card => {
-                state.cards.push({
-                    category: card.querySelector('.text-category').textContent,
-                    homeTeam: card.querySelector('.team-home-container .team-inner-text').textContent,
-                    awayTeam: card.querySelector('.team-away-container .team-inner-text').textContent,
-                    homeScore: card.querySelector('.text-score-home .score-inner-text').textContent,
-                    awayScore: card.querySelector('.text-score-away .score-inner-text').textContent,
-                    homeLogo: card.querySelector('.badge-home img').getAttribute('src') || '',
-                    awayLogo: card.querySelector('.badge-away img').getAttribute('src') || '',
-                    homeLogoDisplay: card.querySelector('.badge-home img').style.display,
-                    awayLogoDisplay: card.querySelector('.badge-away img').style.display,
-                    colorCode: card.querySelector('.card-bg').dataset.appliedColor || ''
-                });
-            });
+        let calFechaVista = new Date();
+        let calFechaInicio = null;
+        let calFechaFin = null;
+        let temporizadorCierreRango = null;
+        let calFechaInicioEfectiva = null;
+        let calFechaFinEfectiva = null;
 
-            localStorage.setItem('nvaAppSavedState', JSON.stringify(state));
-        }
+        function abrirCalendarioRango() {
+            modalDateRange.style.display = 'flex';
+            alAbrirModal();
 
-        function loadAppState() {
-            const saved = localStorage.getItem('nvaAppSavedState');
-            if (!saved) return false; 
+            if (calFechaInicioEfectiva) {
+                calFechaInicio = new Date(calFechaInicioEfectiva.getTime());
+                calFechaInicio.setHours(0, 0, 0, 0);
 
-            const state = JSON.parse(saved);
-            mainContent.innerHTML = '';
-
-            if (state.dateText) {
-                document.getElementById('date-text').textContent = state.dateText;
-                fitCalendarText();
+                if (calFechaFinEfectiva) {
+                    calFechaFin = new Date(calFechaFinEfectiva.getTime());
+                    calFechaFin.setHours(0, 0, 0, 0);
+                } else {
+                    calFechaFin = null;
+                }
+                calFechaVista = new Date(calFechaInicio.getFullYear(), calFechaInicio.getMonth(), 1);
+            } else {
+                calFechaVista = new Date();
+                calFechaInicio = null;
+                calFechaFin = null;
             }
 
-            if (state.cards && state.cards.length > 0) {
-                state.cards.forEach(cardData => {
-                    createNewCard(); 
-                    const currentCard = mainContent.lastElementChild;
+            renderizarCalendarioRango();
+        }
 
-                    currentCard.querySelector('.text-category').textContent = cardData.category;
+        function confirmarRangoActual() {
+            if (calFechaInicio) {
+                if (!calFechaFin) {
+                    calFechaFin = new Date(calFechaInicio.getTime());
+                }
+                calFechaInicioEfectiva = new Date(calFechaInicio.getTime());
+                calFechaFinEfectiva = new Date(calFechaFin.getTime());
+                escribirTextoFechaEnCabecera(calFechaInicioEfectiva, calFechaFinEfectiva);
+            }
+
+            modalDateRange.style.display = 'none';
+            alCerrarModal();
+            abrirModal();
+        }
+
+        function seleccionarFechaRango(fecha) {
+            if (temporizadorCierreRango) clearTimeout(temporizadorCierreRango);
+
+            const f = new Date(fecha.getTime());
+            f.setHours(0, 0, 0, 0);
+
+            if (!calFechaInicio || (calFechaInicio && calFechaFin)) {
+                calFechaInicio = f;
+                calFechaFin = null;
+            } else if (calFechaInicio && !calFechaFin) {
+                if (f.getTime() === calFechaInicio.getTime()) {
+                    calFechaFin = f;
+                } else if (f.getTime() < calFechaInicio.getTime()) {
+                    calFechaFin = calFechaInicio;
+                    calFechaInicio = f;
+                } else {
+                    calFechaFin = f;
+                }
+            }
+
+            renderizarCalendarioRango();
+
+            if (calFechaInicio && calFechaFin) {
+                calFechaInicioEfectiva = new Date(calFechaInicio.getTime());
+                calFechaFinEfectiva = new Date(calFechaFin.getTime());
+
+                temporizadorCierreRango = setTimeout(() => {
+                    modalDateRange.style.display = 'none';
+                    alCerrarModal();
+                    escribirTextoFechaEnCabecera(calFechaInicioEfectiva, calFechaFinEfectiva);
+                    abrirModal();
+                }, 300);
+            }
+        }
+
+        function cambiarMesRango(delta) {
+            calFechaVista.setMonth(calFechaVista.getMonth() + delta);
+            renderizarCalendarioRango();
+        }
+
+        function renderizarCalendarioRango() {
+            if (!calFechaVista) calFechaVista = new Date();
+
+            const anio = calFechaVista.getFullYear();
+            const mes = calFechaVista.getMonth();
+
+            const labelMesAnio = document.getElementById('calMesAnioLabel');
+            if (labelMesAnio) {
+                labelMesAnio.textContent = `${meses[mes]} ${anio}`;
+            }
+
+            const grid = document.getElementById('calDiasGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            const primerDia = new Date(anio, mes, 1).getDay();
+            const offsetLunes = (primerDia === 0) ? 6 : primerDia - 1;
+            const totalDias = new Date(anio, mes + 1, 0).getDate();
+
+            for (let i = 0; i < offsetLunes; i++) {
+                const celdaVacia = document.createElement('div');
+                celdaVacia.className = 'cal-cell empty';
+                grid.appendChild(celdaVacia);
+            }
+
+            const tInicio = calFechaInicio ? new Date(calFechaInicio.getFullYear(), calFechaInicio.getMonth(), calFechaInicio.getDate()).getTime() : null;
+            const tFin = calFechaFin ? new Date(calFechaFin.getFullYear(), calFechaFin.getMonth(), calFechaFin.getDate()).getTime() : null;
+
+            for (let d = 1; d <= totalDias; d++) {
+                const celda = document.createElement('div');
+                celda.className = 'cal-cell';
+                celda.textContent = d;
+
+                const fechaCelda = new Date(anio, mes, d);
+                fechaCelda.setHours(0, 0, 0, 0);
+                const tCelda = fechaCelda.getTime();
+
+                if (tInicio !== null && tCelda === tInicio) celda.classList.add('selected-endpoint');
+                if (tFin !== null && tCelda === tFin) celda.classList.add('selected-endpoint');
+                if (tInicio !== null && tFin !== null && tCelda > tInicio && tCelda < tFin) celda.classList.add('in-range');
+
+                celda.onclick = () => seleccionarFechaRango(fechaCelda);
+                grid.appendChild(celda);
+            }
+        }
+
+        function escribirTextoFechaEnCabecera(fInicio, fFin) {
+            const dIni = fInicio.getDate();
+            const mesIni = meses[fInicio.getMonth()];
+            const anioIni = fInicio.getFullYear();
+
+            const dFin = fFin.getDate();
+            const mesFin = meses[fFin.getMonth()];
+            const anioFin = fFin.getFullYear();
+
+            let textoFinal = '';
+
+            if (dIni === dFin && fInicio.getMonth() === fFin.getMonth() && anioIni === anioFin) {
+                textoFinal = `${dIni} de ${mesIni} del ${anioIni}`;
+            } else if (fInicio.getMonth() === fFin.getMonth() && anioIni === anioFin) {
+                textoFinal = `del ${dIni} al ${dFin} de ${mesFin} del ${anioFin}`;
+            } else {
+                textoFinal = `del ${dIni} de ${mesIni} al ${dFin} de ${mesFin} del ${anioFin}`;
+            }
+
+            const elContenedor = document.getElementById('headerTextoFecha');
+            elContenedor.innerHTML = `<span>${textoFinal}</span>`;
+            autoAjustarTextoCabecera();
+        }
+
+        function autoAjustarTextoCabecera() {
+            const elContenedor = document.getElementById('headerTextoFecha');
+            const elSpan = elContenedor ? elContenedor.querySelector('span') : null;
+            if (!elSpan || !elContenedor) return;
+
+            elSpan.style.transform = 'scaleX(1)';
+            elSpan.style.lineHeight = '1.2';
+
+            const padding = parseFloat(window.getComputedStyle(elContenedor).paddingLeft) + 
+                            parseFloat(window.getComputedStyle(elContenedor).paddingRight);
+            const anchoDisponible = elContenedor.clientWidth - padding;
+            const anchoTexto = elSpan.scrollWidth;
+
+            if (anchoTexto > anchoDisponible && anchoDisponible > 0) {
+                const factorEscalaX = anchoDisponible / anchoTexto;
+                elSpan.style.transform = `scaleX(${factorEscalaX})`;
+            }
+        }
+
+        const selectH = document.getElementById('selectHoras');
+        for (let i = 0; i < 24; i++) {
+            const opt = document.createElement('option');
+            const val = i.toString().padStart(2, '0');
+            opt.value = val;
+            opt.textContent = val;
+            if (i === 9) opt.selected = true;
+            selectH.appendChild(opt);
+        }
+
+        function abrirModal() {
+            modal.style.display = 'flex';
+            alAbrirModal();
+            if (!datosCargados) {
+                intentarCargarExcelOUsarRespaldo();
+            }
+        }
+
+        function cerrarModal() {
+            modal.style.display = 'none';
+            alCerrarModal();
+        }
+
+        function cerrarModalRivales() {
+            modalRivales.style.display = 'none';
+            alCerrarModal();
+        }
+
+        function resetearSeleccion() {
+            const filas = document.querySelectorAll('#tablaBody tr[id^="fila-"]');
+            filas.forEach(tr => {
+                tr.classList.remove('selected-casa', 'selected-fuera');
+            });
+            mapaDatosPartidos = {};
+            document.getElementById('contenedorRecuadros').innerHTML = '';
+        }
+
+        function abrirSelectorHora(spanHora, recuadro) {
+            elementoHoraActual = spanHora;
+            const textoActual = spanHora.textContent.trim();
+            
+            const regex = /^(\d{1,2})\s*:\s*(\d{2})\s*H$/i;
+            const match = textoActual.match(regex);
+            if (match) {
+                selectH.value = match[1].padStart(2, '0');
+                document.getElementById('selectMinutos').value = match[2];
+            } else {
+                selectH.value = '09';
+                document.getElementById('selectMinutos').value = '00';
+            }
+            modalHora.style.display = 'flex';
+            alAbrirModal();
+        }
+
+        function confirmarHoraModal() {
+            if (elementoHoraActual) {
+                const h = selectH.value;
+                const m = document.getElementById('selectMinutos').value;
+                const valorFinal = `${h} : ${m} H`;
+                elementoHoraActual.textContent = valorFinal;
+                elementoHoraActual.classList.remove('vacio');
+                autoAjustarTextoInfo(elementoHoraActual);
+
+                const rec = elementoHoraActual.closest('.recuadro-partido');
+                if (rec && rec.datosEstado) {
+                    rec.datosEstado.hora = valorFinal;
+                }
+            }
+            modalHora.style.display = 'none';
+            alCerrarModal();
+        }
+
+        async function intentarCargarExcelOUsarRespaldo() {
+            const fileNames = ['DATOS.xls'];
+            let response = null;
+
+            for (let name of fileNames) {
+                try {
+                    const res = await fetch(name);
+                    if (res.ok) {
+                        response = res;
+                        break;
+                    }
+                } catch (e) {}
+            }
+
+            if (response) {
+                try {
+                    const arrayBuffer = await response.arrayBuffer();
+                    const data = new Uint8Array(arrayBuffer);
+                    workbookGlobal = XLSX.read(data, {type: 'array'});
                     
-                    const scoreHomeContainer = currentCard.querySelector('.text-score-home');
-                    const scoreAwayContainer = currentCard.querySelector('.text-score-away');
+                    let sheetName = null;
+                    const posiblesPestañas = ["Equipos NVA", "equipos nva", "Equipos_NVA", "Equipos"];
                     
-                    scoreHomeContainer.querySelector('.score-inner-text').textContent = cardData.homeScore;
-                    scoreAwayContainer.querySelector('.score-inner-text').textContent = cardData.awayScore;
-
-                    autoFitScoreText(scoreHomeContainer);
-                    autoFitScoreText(scoreAwayContainer);
-
-                    const homeSpan = currentCard.querySelector('.team-home-container .team-inner-text');
-                    homeSpan.textContent = cardData.homeTeam;
-                    autoFitTeamText(currentCard.querySelector('.team-home-container'), homeSpan);
-
-                    const awaySpan = currentCard.querySelector('.team-away-container .team-inner-text');
-                    awaySpan.textContent = cardData.awayTeam;
-                    autoFitTeamText(currentCard.querySelector('.team-away-container'), awaySpan);
-
-                    const homeImg = currentCard.querySelector('.badge-home img');
-                    if (cardData.homeLogo) homeImg.src = cardData.homeLogo;
-                    homeImg.style.display = cardData.homeLogoDisplay || 'none';
-
-                    const awayImg = currentCard.querySelector('.badge-away img');
-                    if (cardData.awayLogo) awayImg.src = cardData.awayLogo;
-                    awayImg.style.display = cardData.awayLogoDisplay || 'none';
-
-                    if (cardData.colorCode) {
-                        const cardBg = currentCard.querySelector('.card-bg');
-                        cardBg.dataset.appliedColor = cardData.colorCode;
-                        applyColorFilter(cardBg, cardData.colorCode);
-                    } else {
-                        const cardBg = currentCard.querySelector('.card-bg');
-                        cardBg.dataset.appliedColor = 'FFFFFF';
-                        applyColorFilter(cardBg, 'FFFFFF');
+                    for (let p of posiblesPestañas) {
+                        if (workbookGlobal.Sheets[p]) {
+                            sheetName = p;
+                            break;
+                        }
                     }
 
-                    updateMatchGlow(currentCard);
-                });
-            }
-            
-            updateAddFirstButtonVisibility();
-            return true;
-        }
+                    if (!sheetName && workbookGlobal.SheetNames.length > 0) {
+                        sheetName = workbookGlobal.SheetNames[0];
+                    }
 
-        function updateAddFirstButtonVisibility() {
-            const cardCount = mainContent.querySelectorAll('.match-card-container').length;
-            if (cardCount === 0) {
-                btnAddFirst.style.display = 'inline-block';
-                btnReset.style.display = 'none';
-            } else {
-                btnAddFirst.style.display = 'none';
-                btnReset.style.display = 'inline-block';
-            }
-        }
-
-        // === EVENTO BOTÓN RESET ===
-        btnReset.addEventListener('click', () => {
-            const confirmar = confirm('¿Estás seguro de que quieres borrar todo el cartel y empezar de cero?');
-            if (confirmar) {
-                mainContent.innerHTML = '';
-                document.getElementById('date-text').textContent = '';
-                localStorage.removeItem('nvaAppSavedState');
-
-                createNewCard();
-                saveAppState();
-
-                updateAddFirstButtonVisibility();
-            }
-        });
-
-        // PREPARAR TARJETAS PARA CAPTURA
-        async function prepareCardsForCapture() {
-            const promises = [];
-            document.querySelectorAll('.match-card-container').forEach(card => {
-                const cardBg = card.querySelector('.card-bg');
-                const cardOutline = card.querySelector('.card-outline');
-                
-                const p = new Promise((resolve) => {
-                    const imgBg = new Image();
-                    const imgOutline = new Image();
-                    imgBg.crossOrigin = "anonymous";
-                    imgOutline.crossOrigin = "anonymous";
-
-                    let loadedCount = 0;
-                    const onImageLoad = () => {
-                        loadedCount++;
-                        if (loadedCount === 2) {
-                            const canvas = document.createElement('canvas');
-                            canvas.width = imgBg.naturalWidth || 1000;
-                            canvas.height = imgBg.naturalHeight || 444;
-                            const ctx = canvas.getContext('2d');
-                            
-                            ctx.drawImage(imgBg, 0, 0, canvas.width, canvas.height);
-                            ctx.globalCompositeOperation = 'multiply';
-                            ctx.globalAlpha = 0.8;
-                            ctx.drawImage(imgOutline, 0, 0, canvas.width, canvas.height);
-
-                            cardBg.dataset.tempCapturedSrc = cardBg.src;
-                            cardOutline.dataset.tempDisplay = cardOutline.style.display;
-
-                            cardBg.src = canvas.toDataURL('image/png');
-                            cardOutline.style.display = 'none';
-                            
-                            resolve();
+                    if (sheetName && workbookGlobal.Sheets[sheetName]) {
+                        const sheet = workbookGlobal.Sheets[sheetName];
+                        const datosExcel = XLSX.utils.sheet_to_json(sheet);
+                        if (datosExcel.length > 0) {
+                            listaEquiposGlobal = datosExcel;
+                            renderizarTabla(listaEquiposGlobal);
+                            cargarPestañaOtrosEquipos();
+                            mostrarAviso("✅ Equipos cargados correctamente desde el archivo Excel.", false);
+                            datosCargados = true;
+                            return;
                         }
-                    };
+                    }
+                } catch (err) {
+                    console.warn("Error leyendo excel, usando respaldo:", err);
+                }
+            }
 
-                    imgBg.onload = onImageLoad;
-                    imgOutline.onload = onImageLoad;
-                    imgBg.onerror = () => resolve();
-                    imgOutline.onerror = () => resolve();
-
-                    imgBg.src = cardBg.src;
-                    imgOutline.src = cardOutline.src;
-                });
-                promises.push(p);
-            });
-            await Promise.all(promises);
+            listaEquiposGlobal = equiposRespaldo;
+            listaOtrosEquiposGlobal = equiposRespaldo;
+            renderizarTabla(listaEquiposGlobal);
+            mostrarAviso("ℹ️ Usando datos integrados de respaldo.", true);
+            datosCargados = true;
         }
 
-        function restoreCardsAfterCapture() {
-            document.querySelectorAll('.match-card-container').forEach(card => {
-                const cardBg = card.querySelector('.card-bg');
-                const cardOutline = card.querySelector('.card-outline');
-                
-                if (cardBg.dataset.tempCapturedSrc) {
-                    cardBg.src = cardBg.dataset.tempCapturedSrc;
-                    delete cardBg.dataset.tempCapturedSrc;
-                }
-                if (cardOutline.dataset.tempDisplay !== undefined) {
-                    cardOutline.style.display = cardOutline.dataset.tempDisplay;
-                    delete cardOutline.dataset.tempDisplay;
-                }
-            });
-        }
-
-        // === EVENTO BOTÓN DESCARGAR JPG ===
-        jpgButton.addEventListener('click', async () => {
-            const originalText = jpgButton.innerHTML;
-            jpgButton.innerHTML = '⏳ PROCESANDO...';
-            jpgButton.style.pointerEvents = 'none';
+        function cargarPestañaOtrosEquipos() {
+            if (!workbookGlobal) return;
+            let sheetNameOtros = null;
+            const posibles = ["OTROS Equipos", "Otros Equipos", "otros equipos", "OTROS_EQUIPOS", "Otros"];
             
-            const excelBar = document.getElementById('excel-loader-bar');
-            const topBar = document.getElementById('top-loader-bar');
-            excelBar.style.display = 'none';
-            topBar.style.display = 'none';
+            for (let p of posibles) {
+                if (workbookGlobal.Sheets[p]) {
+                    sheetNameOtros = p;
+                    break;
+                }
+            }
+            if (!sheetNameOtros) {
+                for (let name of workbookGlobal.SheetNames) {
+                    if (name.toLowerCase().includes('otro')) {
+                        sheetNameOtros = name;
+                        break;
+                    }
+                }
+            }
+            if (sheetNameOtros && workbookGlobal.Sheets[sheetNameOtros]) {
+                const sheet = workbookGlobal.Sheets[sheetNameOtros];
+                listaOtrosEquiposGlobal = XLSX.utils.sheet_to_json(sheet);
+            } else {
+                listaOtrosEquiposGlobal = listaEquiposGlobal;
+            }
+        }
 
-            await prepareCardsForCapture();
+        function mostrarAviso(texto, esAlerta) {
+            const aviso = document.getElementById('avisoEstado');
+            aviso.innerText = texto;
+            aviso.style.display = 'block';
+            if (esAlerta) {
+                aviso.style.background = '#2c2215';
+                aviso.style.borderColor = '#ffa500';
+                aviso.style.color = '#ffda9e';
+            } else {
+                aviso.style.background = '#152c1b';
+                aviso.style.borderColor = '#28a745';
+                aviso.style.color = '#a3ffb8';
+            }
+        }
 
-            const captureElement = document.getElementById('capture-area');
+        function obtenerNombreEquipo(fila) {
+            return (fila['EQUIPO'] || fila['Nombre'] || fila['Equipo'] || fila['nombre'] || 'Equipo').toString().trim();
+        }
+        function obtenerCategoria(fila) {
+            return (fila['CATEGORIA'] || fila['Categoria'] || fila['Categoría'] || fila['CATEGORÍA'] || '').toString().trim();
+        }
+        function obtenerCampo(fila) {
+            return (fila['CAMPO'] || fila['Campo'] || fila['campo'] || fila['LUGAR'] || fila['Lugar'] || fila['UBICACION'] || fila['Ubicacion'] || fila['UBICACIÓN'] || fila['Ubicación'] || fila['PABELLON'] || fila['Pabellon'] || fila['PABELLÓN'] || fila['Pabellón'] || '').toString().trim();
+        }
+        function obtenerColor(fila) {
+            let c = fila['COLOR'] || fila['Color'] || fila['color'] || '';
+            c = (typeof c === 'string') ? c.trim() : '';
+            if (c === '') return '#00B0F0';
+            if (!c.startsWith('#')) c = '#' + c;
+            return c;
+        }
+        
+        function obtenerRutaLogo(fila) {
+            const logoValor = fila['LOGO'] || fila['Logo'] || fila['logo'] || fila['Icono'] || fila['ICONO'] || fila['Imagen'] || '';
+            const nombre = obtenerNombreEquipo(fila);
+            let rutaBase = '';
+            if (logoValor && typeof logoValor === 'string' && logoValor.trim() !== '') {
+                let val = logoValor.trim();
+                if (!val.toLowerCase().endsWith('.png') && !val.toLowerCase().endsWith('.jpg') && !val.toLowerCase().endsWith('.jpeg') && !val.toLowerCase().endsWith('.svg')) {
+                    rutaBase = val + '.png';
+                } else {
+                    rutaBase = val;
+                }
+            } else {
+                rutaBase = nombre.trim() + '.png';
+            }
+            // Evita duplicar la carpeta si ya estuviera escrita en el excel
+            if (!rutaBase.toLowerCase().startsWith('logos/') && !rutaBase.toLowerCase().startsWith('logos\\')) {
+                return 'LOGOs/' + rutaBase;
+            }
+            return rutaBase;
+        }
+
+        const SVG_LOGO_VACIO = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><rect width='100' height='100' fill='none'/></svg>";
+
+        function renderizarTabla(datos) {
+            const tbody = document.getElementById('tablaBody');
+            tbody.innerHTML = '';
+
+            datos.forEach((fila, index) => {
+                const tr = document.createElement('tr');
+                tr.id = `fila-${index}`;
+
+                const nombre = obtenerNombreEquipo(fila);
+                const categoria = obtenerCategoria(fila);
+                const rutaLogo = obtenerRutaLogo(fila);
+
+                tr.innerHTML = `
+                    <td>
+                        <img src="${rutaLogo}" class="team-icon" alt="${nombre}" 
+                             onerror="this.onerror=null; this.src=SVG_LOGO_VACIO;">
+                    </td>
+                    <td style="font-weight: 600;">${nombre}</td>
+                    <td style="color: #bbb;">${categoria}</td>
+                    <td class="acciones-td">
+                        <button class="btn-casa" onclick="seleccionarEquipo(${index}, 'casa')">CASA</button>
+                        <button class="btn-fuera" onclick="seleccionarEquipo(${index}, 'fuera')">FUERA</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function seleccionarEquipo(index, tipo) {
+            const tr = document.getElementById(`fila-${index}`);
+            const yaCasa = tr.classList.contains('selected-casa');
+            const yaFuera = tr.classList.contains('selected-fuera');
+
+            tr.classList.remove('selected-casa', 'selected-fuera');
+
+            if (tipo === 'casa' && !yaCasa) {
+                tr.classList.add('selected-casa');
+            } else if (tipo === 'fuera' && !yaFuera) {
+                tr.classList.add('selected-fuera');
+            }
+        }
+
+        const RUTA_FONDO = 'Imagenes/Recuadro (fondo).png';
+        const RUTA_MASCARA_IMG = 'Imagenes/Recuadro (mascara).png';
+        const RUTA_MASCARA = `url('${RUTA_MASCARA_IMG}')`;
+
+        function confirmarSeleccion() {
+            generarRecuadros();
+            cerrarModal();
+            const cont = document.getElementById('contenedorRecuadros');
+            if (cont.children.length > 0) {
+                cont.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function generarRecuadros() {
+            const cont = document.getElementById('contenedorRecuadros');
+            
+            const recuadrosExistentes = cont.querySelectorAll('.recuadro-partido');
+            recuadrosExistentes.forEach(rec => {
+                const idx = rec.getAttribute('data-index');
+                if (idx !== null && rec.datosEstado) {
+                    mapaDatosPartidos[idx] = { ...rec.datosEstado };
+                }
+            });
+
+            const filas = document.querySelectorAll('#tablaBody tr[id^="fila-"]');
+            const nuevosIndices = [];
+            
+            filas.forEach(tr => {
+                let tipo = null;
+                if (tr.classList.contains('selected-casa')) tipo = 'casa';
+                else if (tr.classList.contains('selected-fuera')) tipo = 'fuera';
+                if (!tipo) return;
+
+                const index = parseInt(tr.id.replace('fila-', ''), 10);
+                nuevosIndices.push({ index, tipo });
+            });
+
+            const setNuevos = new Set(nuevosIndices.map(n => n.index.toString()));
+            Object.keys(mapaDatosPartidos).forEach(k => {
+                if (!setNuevos.has(k)) {
+                    delete mapaDatosPartidos[k];
+                }
+            });
+
+            cont.innerHTML = '';
+
+            nuevosIndices.forEach(item => {
+                const fila = listaEquiposGlobal[item.index];
+                if (!fila) return;
+
+                let estadoGuardado = mapaDatosPartidos[item.index];
+                if (estadoGuardado && estadoGuardado.tipo !== item.tipo) {
+                    estadoGuardado.tipo = item.tipo;
+                    if (item.tipo === 'casa') {
+                        estadoGuardado.lugar = "PALAU D'ESPORTS (ALZIRA)";
+                    } else {
+                        let campoRival = '';
+                        if (estadoGuardado.rivalNombre) {
+                            const rivalEncontrado = listaOtrosEquiposGlobal.find(
+                                r => obtenerNombreEquipo(r).toLowerCase() === estadoGuardado.rivalNombre.toLowerCase()
+                            );
+                            if (rivalEncontrado) {
+                                campoRival = obtenerCampo(rivalEncontrado);
+                            }
+                        }
+                        estadoGuardado.lugar = campoRival;
+                    }
+                }
+                const nuevoRecuadro = crearRecuadro(fila, item.tipo, item.index, estadoGuardado);
+                cont.appendChild(nuevoRecuadro);
+            });
+        }
+
+        function crearRecuadro(fila, tipo, indexFila, estadoInicial) {
+            const color = obtenerColor(fila);
+            const logoClub = obtenerRutaLogo(fila);
+            const categoriaClub = obtenerCategoria(fila);
+            const esCasa = (tipo === 'casa');
+            const nombreClub = obtenerNombreEquipo(fila);
+
+            let campoPredefinido = esCasa ? "PALAU D'ESPORTS (ALZIRA)" : "";
+
+            const estado = estadoInicial || {
+                tipo: tipo,
+                rivalNombre: '',
+                rivalLogo: '',
+                fecha: '',
+                hora: '',
+                lugar: campoPredefinido
+            };
+            mapaDatosPartidos[indexFila] = estado;
+
+            const recuadro = document.createElement('div');
+            recuadro.className = 'recuadro-partido';
+            recuadro.setAttribute('data-index', indexFila);
+            recuadro.datosEstado = estado;
+            recuadro.setAttribute('data-categoria', categoriaClub);
+            recuadro.style.setProperty('--color-equipo', color);
+            recuadro.style.setProperty('--mask-img', RUTA_MASCARA);
+
+            const imgFondo = document.createElement('img');
+            imgFondo.className = 'capa-fondo';
+            imgFondo.src = RUTA_FONDO;
+            imgFondo.alt = 'Fondo';
+
+            const capaBorde = document.createElement('div');
+            capaBorde.className = 'capa-borde';
+
+            const primeraPalabraCat = categoriaClub ? categoriaClub.split(' ')[0] : '';
+            const textoVerticalCat = document.createElement('div');
+            textoVerticalCat.className = 'texto-categoria-vertical';
+            textoVerticalCat.textContent = primeraPalabraCat;
+
+            const contenido = document.createElement('div');
+            contenido.className = 'contenido-recuadro';
+
+            const areaIzq = document.createElement('div');
+            areaIzq.className = 'area-equipo-izq';
+            const spanIzq = document.createElement('span');
+            spanIzq.className = 'nombre-equipo';
+            areaIzq.appendChild(spanIzq);
+
+            const areaLogoIzq = document.createElement('div');
+            areaLogoIzq.className = 'area-logo-izq';
+            const logoIzq = document.createElement('img');
+            logoIzq.className = 'logo-img';
+            logoIzq.onerror = function () { this.onerror = null; this.src = SVG_LOGO_VACIO; };
+            areaLogoIzq.appendChild(logoIzq);
+
+            const areaLogoDer = document.createElement('div');
+            areaLogoDer.className = 'area-logo-der';
+            const logoDer = document.createElement('img');
+            logoDer.className = 'logo-img';
+            logoDer.onerror = function () { this.onerror = null; this.src = SVG_LOGO_VACIO; };
+            areaLogoDer.appendChild(logoDer);
+
+            const areaDer = document.createElement('div');
+            areaDer.className = 'area-equipo-der';
+            const spanDer = document.createElement('span');
+            spanDer.className = 'nombre-equipo';
+            areaDer.appendChild(spanDer);
+
+            if (esCasa) {
+                spanIzq.textContent = nombreClub;
+                logoIzq.src = logoClub;
+
+                if (estado.rivalNombre && estado.rivalNombre.trim() !== '') {
+                    spanDer.textContent = estado.rivalNombre;
+                    spanDer.classList.add('campo-editable');
+                    logoDer.src = estado.rivalLogo || SVG_LOGO_VACIO;
+                } else {
+                    spanDer.textContent = 'SELECCIONAR RIVAL';
+                    spanDer.classList.add('campo-editable', 'vacio');
+                    logoDer.src = SVG_LOGO_VACIO;
+                }
+                logoDer.style.cursor = 'pointer';
+
+                const dispararModal = () => abrirModalRivales(spanDer, logoDer, categoriaClub, recuadro);
+                spanDer.onclick = dispararModal;
+                logoDer.onclick = dispararModal;
+            } else {
+                if (estado.rivalNombre && estado.rivalNombre.trim() !== '') {
+                    spanIzq.textContent = estado.rivalNombre;
+                    spanIzq.classList.add('campo-editable');
+                    logoIzq.src = estado.rivalLogo || SVG_LOGO_VACIO;
+                } else {
+                    spanIzq.textContent = 'SELECCIONAR RIVAL';
+                    spanIzq.classList.add('campo-editable', 'vacio');
+                    logoIzq.src = SVG_LOGO_VACIO;
+                }
+                logoIzq.style.cursor = 'pointer';
+
+                spanDer.textContent = nombreClub;
+                logoDer.src = logoClub;
+
+                const dispararModal = () => abrirModalRivales(spanIzq, logoIzq, categoriaClub, recuadro);
+                spanIzq.onclick = dispararModal;
+                logoIzq.onclick = dispararModal;
+            }
+
+            const areaInfo = construirInfoPartido(recuadro, estado);
+
+            contenido.appendChild(areaIzq);
+            contenido.appendChild(areaLogoIzq);
+            contenido.appendChild(areaLogoDer);
+            contenido.appendChild(areaDer);
+            contenido.appendChild(areaInfo);
+
+            recuadro.appendChild(imgFondo);
+            recuadro.appendChild(capaBorde);
+            recuadro.appendChild(textoVerticalCat);
+            recuadro.appendChild(contenido);
 
             setTimeout(() => {
-                html2canvas(captureElement, { 
-                    backgroundColor: '#000000', 
-                    scale: 2, 
-                    useCORS: true, 
-                    allowTaint: true 
-                })
-                .then(canvas => {
-                    excelBar.style.display = 'flex';
-                    topBar.style.display = 'flex';
-                    restoreCardsAfterCapture();
-                    const link = document.createElement('a');
-                    link.download = 'cartel-resultados-nou-volei-alzira.jpg';
-                    link.href = canvas.toDataURL('image/jpeg', 0.95);
-                    link.click();
-                    showToast('¡Imagen descargada con éxito!');
-                })
-                .catch(err => {
-                    console.error("Error html2canvas:", err);
-                    excelBar.style.display = 'flex';
-                    topBar.style.display = 'flex';
-                    restoreCardsAfterCapture();
-                    showToast("Error al exportar. Comprueba los ficheros locales.", true);
-                })
-                .finally(() => {
-                    jpgButton.innerHTML = originalText;
-                    jpgButton.style.pointerEvents = 'auto';
-                });
-            }, 150);
-        });
+                autoAjustarTextoEquipo(spanIzq);
+                autoAjustarTextoEquipo(spanDer);
+                const camposInfo = areaInfo.querySelectorAll('.campo-editable-info');
+                camposInfo.forEach(c => autoAjustarTextoInfo(c));
+            }, 60);
 
-        // ==========================================================================
-        // SISTEMA DE CARGA Y PROCESAMIENTO DE HISTORIAL DESDE TXT
-        // ==========================================================================
-        btnLoadHistory.addEventListener('click', () => {
-            txtFileInput.value = '';
-            txtFileInput.click();
-        });
+            return recuadro;
+        }
 
-        txtFileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+        function aplicarRivalSeleccionado(nombre, rutaLogo, filaRival) {
+            if (elementoNombreRivalActual) {
+                elementoNombreRivalActual.textContent = nombre;
+                elementoNombreRivalActual.classList.remove('vacio');
+                setTimeout(() => autoAjustarTextoEquipo(elementoNombreRivalActual), 20);
 
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                parseAndShowHistory(event.target.result);
-            };
-            reader.readAsText(file, 'UTF-8');
-        });
+                const contenedorRecuadro = recuadroPadreRivalActual || elementoNombreRivalActual.closest('.recuadro-partido');
+                if (contenedorRecuadro && contenedorRecuadro.datosEstado) {
+                    contenedorRecuadro.datosEstado.rivalNombre = nombre;
+                    contenedorRecuadro.datosEstado.rivalLogo = rutaLogo;
+                }
 
-        function parseAndShowHistory(txtContent) {
-            // Normalizar saltos de línea y separar bloques por líneas en blanco
-            const rawBlocks = txtContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split(/\n\s*\n/);
-            parsedHistoryGroups = [];
-
-            for (let block of rawBlocks) {
-                const lines = block.split('\n').map(l => l.trim()).filter(l => l !== '');
-                if (lines.length === 0) continue;
-
-                // Regla 1: La primera fila es la fecha
-                const dateStr = lines[0];
-                const matches = [];
-
-                // Regla 2: Filas siguientes con datos separados por "|"
-                // Formato: Equipo Casa | Equipo Visitante | Fecha Partido | Hora Partido | Campo | Categoria
-                for (let i = 1; i < lines.length; i++) {
-                    const parts = lines[i].split('|').map(p => p.trim());
-                    if (parts.length >= 2) {
-                        matches.push({
-                            homeTeam: parts[0] || '',
-                            awayTeam: parts[1] || '',
-                            matchDate: parts[2] || '',
-                            matchTime: parts[3] || '',
-                            venue: parts[4] || '',
-                            category: parts[parts.length - 1] || '' // Extrae el último valor de la fila (Categoría)
-                        });
+                if (contenedorRecuadro && elementoNombreRivalActual.parentElement.classList.contains('area-equipo-izq')) {
+                    const campoLugar = contenedorRecuadro.querySelector('.campo-lugar');
+                    const lugarRival = obtenerCampo(filaRival);
+                    if (campoLugar) {
+                        if (lugarRival && lugarRival.trim() !== '') {
+                            campoLugar.textContent = lugarRival;
+                            campoLugar.classList.remove('vacio');
+                            if (contenedorRecuadro.datosEstado) contenedorRecuadro.datosEstado.lugar = lugarRival;
+                        } else {
+                            campoLugar.textContent = 'UBICACION';
+                            campoLugar.classList.add('vacio');
+                            if (contenedorRecuadro.datosEstado) contenedorRecuadro.datosEstado.lugar = '';
+                        }
+                        setTimeout(() => autoAjustarTextoInfo(campoLugar), 20);
                     }
                 }
+            }
+            if (elementoLogoRivalActual) {
+                elementoLogoRivalActual.src = rutaLogo;
+            }
+        }
 
-                if (matches.length > 0) {
-                    parsedHistoryGroups.push({ date: dateStr, matches });
+        function abrirModalEditarRival(fila) {
+            filaRivalPendienteEdicion = fila;
+            const input = document.getElementById('inputEditarNombreRival');
+            input.value = obtenerNombreEquipo(fila);
+            modalEditarRival.style.display = 'flex';
+            alAbrirModal();
+            setTimeout(() => {
+                input.focus();
+                input.select();
+            }, 100);
+        }
+
+        function cerrarModalEditarRival() {
+            modalEditarRival.style.display = 'none';
+            alCerrarModal();
+            filaRivalPendienteEdicion = null;
+        }
+
+        function confirmarEdicionRival() {
+            if (!filaRivalPendienteEdicion) return;
+            const nuevoNombre = document.getElementById('inputEditarNombreRival').value.trim() || obtenerNombreEquipo(filaRivalPendienteEdicion);
+            const rutaLogo = obtenerRutaLogo(filaRivalPendienteEdicion);
+            
+            aplicarRivalSeleccionado(nuevoNombre, rutaLogo, filaRivalPendienteEdicion);
+            cerrarModalEditarRival();
+        }
+
+        function abrirModalRivales(elementoNombre, elementoLogo, categoriaClub, recuadroPadre) {
+            elementoNombreRivalActual = elementoNombre;
+            elementoLogoRivalActual = elementoLogo;
+            recuadroPadreRivalActual = recuadroPadre;
+            
+            const tbody = document.getElementById('tablaRivalesBody');
+            tbody.innerHTML = '';
+
+            const catFiltro = (categoriaClub || '').trim().toLowerCase();
+            let mismaCategoria = [];
+            let sinCategoria = [];
+
+            listaOtrosEquiposGlobal.forEach(fila => {
+                const cat = obtenerCategoria(fila);
+                const catLower = cat.trim().toLowerCase();
+
+                if (catFiltro !== '' && catLower !== '' && catLower === catFiltro) {
+                    mismaCategoria.push(fila);
+                } else {
+                    sinCategoria.push(fila);
                 }
+            });
 
-                // Regla 3: Extraer solo los datos de las 5 primeras fechas
-                if (parsedHistoryGroups.length >= 5) break;
+            mismaCategoria.sort((a, b) => obtenerNombreEquipo(a).localeCompare(obtenerNombreEquipo(b), 'es', { sensitivity: 'base' }));
+            sinCategoria.sort((a, b) => obtenerNombreEquipo(a).localeCompare(obtenerNombreEquipo(b), 'es', { sensitivity: 'base' }));
+
+            mismaCategoria.forEach(fila => {
+                const tr = document.createElement('tr');
+                tr.className = 'item-rival fila-misma-categoria';
+
+                const nombre = obtenerNombreEquipo(fila);
+                const categoria = obtenerCategoria(fila);
+                const rutaLogo = obtenerRutaLogo(fila);
+
+                tr.innerHTML = `
+                    <td>
+                        <img src="${rutaLogo}" class="team-icon" alt="${nombre}" 
+                             onerror="this.onerror=null; this.src=SVG_LOGO_VACIO;">
+                    </td>
+                    <td style="font-weight: 700; color: #fff;">${nombre}</td>
+                    <td><span class="badge-cat-misma">${categoria}</span></td>
+                `;
+
+                tr.onclick = () => {
+                    cerrarModalRivales();
+                    aplicarRivalSeleccionado(nombre, rutaLogo, fila);
+                };
+                tbody.appendChild(tr);
+            });
+
+            sinCategoria.forEach(fila => {
+                const tr = document.createElement('tr');
+                tr.className = 'item-rival';
+
+                const nombre = obtenerNombreEquipo(fila);
+                const categoria = obtenerCategoria(fila);
+                const rutaLogo = obtenerRutaLogo(fila);
+
+                tr.innerHTML = `
+                    <td>
+                        <img src="${rutaLogo}" class="team-icon" alt="${nombre}" 
+                             onerror="this.onerror=null; this.src=SVG_LOGO_VACIO;">
+                    </td>
+                    <td style="font-weight: 600; color: #ddd;">${nombre}</td>
+                    <td><span class="badge-cat-sin">${categoria || 'Otra categoría'}</span></td>
+                `;
+
+                tr.onclick = () => {
+                    cerrarModalRivales();
+                    abrirModalEditarRival(fila);
+                };
+                tbody.appendChild(tr);
+            });
+
+            if (mismaCategoria.length === 0 && sinCategoria.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" style="text-align: center; color: #999; padding: 25px;">
+                            No se encontraron equipos rivales.
+                        </td>
+                    </tr>
+                `;
             }
 
-            if (parsedHistoryGroups.length === 0) {
-                showToast("No se encontraron datos válidos en el archivo .txt", true);
+            modalRivales.style.display = 'flex';
+            alAbrirModal();
+        }
+
+        function construirInfoPartido(recuadro, estado) {
+            const info = document.createElement('div');
+            info.className = 'area-info';
+
+            // 1. FECHA
+            const contFecha = document.createElement('div');
+            contFecha.className = 'contenedor-item-info';
+            const spanFecha = document.createElement('span');
+            spanFecha.className = 'campo-editable-info';
+
+            if (estado.fecha && estado.fecha.trim() !== '') {
+                spanFecha.textContent = estado.fecha;
+            } else {
+                spanFecha.textContent = 'FECHA';
+                spanFecha.classList.add('vacio');
+            }
+            
+            const inputFecha = document.createElement('input');
+            inputFecha.type = 'date';
+            inputFecha.className = 'input-picker-oculto';
+
+            spanFecha.onclick = () => {
+                if (typeof inputFecha.showPicker === 'function') {
+                    inputFecha.showPicker();
+                } else {
+                    inputFecha.focus();
+                    inputFecha.click();
+                }
+            };
+
+            inputFecha.addEventListener('change', function () {
+                if (this.value) {
+                    const partes = this.value.split('-');
+                    const anio = partes[0];
+                    const mes = meses[parseInt(partes[1], 10) - 1];
+                    const dia = parseInt(partes[2], 10);
+                    const fechaTxt = `${dia} de ${mes} de ${anio}`;
+
+                    spanFecha.textContent = fechaTxt;
+                    spanFecha.classList.remove('vacio');
+                    if (recuadro && recuadro.datosEstado) {
+                        recuadro.datosEstado.fecha = fechaTxt;
+                    }
+                    autoAjustarTextoInfo(spanFecha);
+                }
+            });
+
+            contFecha.appendChild(spanFecha);
+            contFecha.appendChild(inputFecha);
+            info.appendChild(contFecha);
+
+            // 2. HORA
+            const contHora = document.createElement('div');
+            contHora.className = 'contenedor-item-info';
+            const spanHora = document.createElement('span');
+            spanHora.className = 'campo-editable-info';
+
+            if (estado.hora && estado.hora.trim() !== '') {
+                spanHora.textContent = estado.hora;
+            } else {
+                spanHora.textContent = 'HORA';
+                spanHora.classList.add('vacio');
+            }
+
+            spanHora.onclick = () => {
+                abrirSelectorHora(spanHora, recuadro);
+            };
+
+            contHora.appendChild(spanHora);
+            info.appendChild(contHora);
+
+            // 3. CAMPO / UBICACION
+            const contLugar = document.createElement('div');
+            contLugar.className = 'contenedor-item-info';
+            const spanLugar = document.createElement('span');
+            spanLugar.className = 'campo-editable-info editable-texto campo-lugar';
+            spanLugar.contentEditable = 'true';
+
+            if (estado.lugar && estado.lugar.trim() !== '') {
+                spanLugar.textContent = estado.lugar;
+            } else {
+                spanLugar.textContent = 'UBICACION';
+                spanLugar.classList.add('vacio');
+            }
+
+            spanLugar.addEventListener('focus', function () {
+                if (this.classList.contains('vacio')) {
+                    this.textContent = '';
+                    this.classList.remove('vacio');
+                }
+            });
+
+            spanLugar.addEventListener('blur', function () {
+                if (this.textContent.trim() === '') {
+                    this.textContent = 'UBICACION';
+                    this.classList.add('vacio');
+                    if (recuadro && recuadro.datosEstado) recuadro.datosEstado.lugar = '';
+                } else {
+                    if (recuadro && recuadro.datosEstado) recuadro.datosEstado.lugar = this.textContent.trim();
+                }
+                autoAjustarTextoInfo(this);
+            });
+
+            spanLugar.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.blur();
+                }
+            });
+
+            spanLugar.addEventListener('paste', function (e) {
+                e.preventDefault();
+                const text = (e.clipboardData || window.clipboardData).getData('text');
+                const cleanText = text.replace(/[\r\n]+/g, ' ').trim();
+
+                if (document.queryCommandSupported && document.queryCommandSupported('insertText')) {
+                    document.execCommand('insertText', false, cleanText);
+                } else {
+                    const selection = window.getSelection();
+                    if (selection && selection.rangeCount > 0 && this.contains(selection.anchorNode)) {
+                        const range = selection.getRangeAt(0);
+                        range.deleteContents();
+                        range.insertNode(document.createTextNode(cleanText));
+                        range.collapse(false);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    } else {
+                        this.textContent += cleanText;
+                    }
+                }
+            });
+
+            spanLugar.addEventListener('input', function () {
+                if (recuadro && recuadro.datosEstado && !this.classList.contains('vacio')) {
+                    recuadro.datosEstado.lugar = this.textContent.trim();
+                }
+                autoAjustarTextoInfo(this);
+            });
+
+            contLugar.appendChild(spanLugar);
+            info.appendChild(contLugar);
+
+            return info;
+        }
+
+        function autoAjustarTextoInfo(el) {
+            if (!el) return;
+            el.style.transform = 'scaleX(0.7)';
+            
+            const contenedor = el.parentElement;
+            if (!contenedor) return;
+
+            const anchoDisponible = contenedor.clientWidth - 12;
+            const anchoTexto = el.scrollWidth;
+            const anchoRenderizado = anchoTexto * 0.7;
+
+            if (anchoRenderizado > anchoDisponible && anchoDisponible > 0) {
+                const escalaFinal = (anchoDisponible / anchoTexto);
+                el.style.transform = `scaleX(${escalaFinal})`;
+            }
+        }
+
+        // Medidor de texto auxiliar en canvas
+        let canvasContextMedicion = null;
+        function getCanvasContext() {
+            if (!canvasContextMedicion) {
+                const canvas = document.createElement('canvas');
+                canvasContextMedicion = canvas.getContext('2d');
+            }
+            return canvasContextMedicion;
+        }
+
+        function calcularLineasSinDeformar(palabras, anchoMaximo, fontStyle) {
+            const ctx = getCanvasContext();
+            ctx.font = fontStyle;
+            const lineas = [];
+            let lineaActual = '';
+
+            for (let i = 0; i < palabras.length; i++) {
+                const palabra = palabras[i];
+                const lineaPrueba = lineaActual ? (lineaActual + ' ' + palabra) : palabra;
+                const anchoPrueba = ctx.measureText(lineaPrueba).width;
+
+                if (anchoPrueba <= anchoMaximo) {
+                    lineaActual = lineaPrueba;
+                } else {
+                    if (lineaActual) {
+                        lineas.push(lineaActual);
+                        lineaActual = palabra;
+                    } else {
+                        // Una sola palabra sobrepasa el ancho
+                        lineas.push(palabra);
+                        lineaActual = '';
+                    }
+                }
+            }
+            if (lineaActual) {
+                lineas.push(lineaActual);
+            }
+            return lineas;
+        }
+
+        function autoAjustarTextoEquipo(el) {
+            if (!el) return;
+            const contenedor = el.parentElement;
+            if (!contenedor) return;
+
+            const anchoDisponible = contenedor.clientWidth;
+            const altoDisponible = contenedor.clientHeight;
+            if (anchoDisponible <= 0 || altoDisponible <= 0) return;
+
+            const textoOriginal = (el.innerText || el.textContent).replace(/\s+/g, ' ').trim();
+            if (!textoOriginal) return;
+
+            const palabras = textoOriginal.split(' ');
+            const estilo = window.getComputedStyle(el);
+            const fontWeight = estilo.fontWeight || '750';
+            const fontStyleStr = estilo.fontStyle || 'italic';
+            const fontFamily = estilo.fontFamily || 'sans-serif';
+
+            // Tamaño de fuente base (proporcional al contenedor del recuadro)
+            const recuadro = el.closest('.recuadro-partido');
+            const anchoBaseRecuadro = recuadro ? recuadro.clientWidth : anchoDisponible * 5;
+            let fontSizePx = anchoBaseRecuadro * 0.023; // 2.3cqw
+            
+            const minFontSizePx = anchoBaseRecuadro * 0.012;
+
+            while (fontSizePx >= minFontSizePx) {
+                const fontCss = `${fontStyleStr} ${fontWeight} ${fontSizePx}px ${fontFamily}`;
+                const lineas = calcularLineasSinDeformar(palabras, anchoDisponible, fontCss);
+
+                const lineAlt = fontSizePx * 0.95;
+                const altoTotal = lineas.length * lineAlt;
+
+                if (lineas.length <= 3 && altoTotal <= altoDisponible) {
+                    el.style.fontSize = fontSizePx + 'px';
+                    el.style.lineHeight = '0.95';
+                    el.style.transform = 'none';
+                    el.innerHTML = lineas.map(l => `<span>${l}</span>`).join('<br>');
+                    return;
+                }
+                fontSizePx -= 0.5;
+            }
+
+            // Si es sumamente largo, se aplica en 3 líneas con el tamaño mínimo
+            const fontCssFinal = `${fontStyleStr} ${fontWeight} ${fontSizePx}px ${fontFamily}`;
+            const lineasFinales = calcularLineasSinDeformar(palabras, anchoDisponible, fontCssFinal);
+            el.style.fontSize = fontSizePx + 'px';
+            el.style.lineHeight = '0.95';
+            el.style.transform = 'none';
+            el.innerHTML = lineasFinales.slice(0, 3).map(l => `<span>${l}</span>`).join('<br>');
+        }
+
+        window.addEventListener('resize', () => {
+            document.querySelectorAll('.nombre-equipo').forEach(el => autoAjustarTextoEquipo(el));
+            document.querySelectorAll('.campo-editable-info').forEach(el => autoAjustarTextoInfo(el));
+            autoAjustarTextoCabecera();
+        });
+
+        function esperarImagenesCargadas() {
+            const imgs = Array.from(document.images);
+            const pendientes = imgs.filter(img => img.src && !img.complete);
+            if (pendientes.length === 0) return Promise.resolve();
+            return Promise.all(pendientes.map(img => new Promise(resolve => {
+                img.addEventListener('load', resolve, { once: true });
+                img.addEventListener('error', resolve, { once: true });
+                setTimeout(resolve, 4000);
+            })));
+        }
+
+        function formatearFechaParaArchivo(fInicio, fFin) {
+            const dIni = fInicio.getDate();
+            const mesIni = meses[fInicio.getMonth()];
+            const anioIni = fInicio.getFullYear();
+            const dFin = fFin.getDate();
+            const mesFin = meses[fFin.getMonth()];
+            const anioFin = fFin.getFullYear();
+
+            if (dIni === dFin && fInicio.getMonth() === fFin.getMonth() && anioIni === anioFin) {
+                return `${dIni} de ${mesIni} del ${anioIni}`;
+            }
+            if (fInicio.getMonth() === fFin.getMonth() && anioIni === anioFin) {
+                return `del ${dIni} al ${dFin} de ${mesFin} del ${anioFin}`;
+            }
+            return `del ${dIni} de ${mesIni} al ${dFin} de ${mesFin} del ${anioFin}`;
+        }
+
+        function construirNombreArchivoCaptura() {
+            let sufijo = '';
+            if (calFechaInicio && calFechaFin) {
+                sufijo = ' ' + formatearFechaParaArchivo(calFechaInicio, calFechaFin);
+            } else {
+                const elSpan = document.querySelector('#headerTextoFecha span');
+                if (elSpan && elSpan.textContent.trim() !== '') {
+                    sufijo = ' ' + elSpan.textContent.trim();
+                }
+            }
+            let nombre = 'Partidos' + sufijo;
+            nombre = nombre.replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ').trim();
+            return nombre + '.jpg';
+        }
+
+        function descargarBlobComoArchivo(blob, nombreArchivo) {
+            const url = URL.createObjectURL(blob);
+            const soportaDescarga = ('download' in document.createElement('a'));
+
+            if (soportaDescarga) {
+                const enlace = document.createElement('a');
+                enlace.href = url;
+                enlace.download = nombreArchivo;
+                enlace.style.display = 'none';
+                document.body.appendChild(enlace);
+                enlace.click();
+                document.body.removeChild(enlace);
+                setTimeout(() => URL.revokeObjectURL(url), 4000);
+            } else {
+                const nuevaVentana = window.open(url, '_blank');
+                if (!nuevaVentana) {
+                    alert('No se pudo abrir la imagen. Permite las ventanas emergentes e inténtalo de nuevo.');
+                }
+                setTimeout(() => URL.revokeObjectURL(url), 15000);
+            }
+        }
+
+        let imagenMascaraCache = null;
+
+        function cargarImagenMascara() {
+            return new Promise((resolve, reject) => {
+                if (imagenMascaraCache) { resolve(imagenMascaraCache); return; }
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => { imagenMascaraCache = img; resolve(img); };
+                img.onerror = () => reject(new Error('No se pudo cargar la imagen de máscara: ' + RUTA_MASCARA_IMG));
+                img.src = RUTA_MASCARA_IMG;
+            });
+        }
+
+        async function generarImagenesCapaBorde(escala) {
+            const capas = Array.from(document.querySelectorAll('.capa-borde'));
+            const reemplazos = [];
+            if (capas.length === 0) return reemplazos;
+
+            let maskImg = null;
+            try {
+                maskImg = await cargarImagenMascara();
+            } catch (err) {
+                console.warn('Captura: no se pudo preparar la máscara del recuadro, se ocultará el borde de color.', err);
+            }
+
+            capas.forEach(capa => {
+                if (!maskImg) {
+                    capa.classList.add('oculto-temporal-captura');
+                    reemplazos.push({ original: capa, generada: null });
+                    return;
+                }
+
+                const ancho = capa.offsetWidth;
+                const alto = capa.offsetHeight;
+                if (ancho === 0 || alto === 0) return;
+
+                try {
+                    const colorFinal = getComputedStyle(capa).backgroundColor || '#00b0f0';
+                    const factor = Math.max(1, Math.min(escala || 1.5, 3));
+
+                    const canvasTmp = document.createElement('canvas');
+                    canvasTmp.width = Math.round(ancho * factor);
+                    canvasTmp.height = Math.round(alto * factor);
+                    const ctx = canvasTmp.getContext('2d');
+
+                    ctx.drawImage(maskImg, 0, 0, canvasTmp.width, canvasTmp.height);
+                    ctx.globalCompositeOperation = 'source-in';
+                    ctx.fillStyle = colorFinal;
+                    ctx.fillRect(0, 0, canvasTmp.width, canvasTmp.height);
+
+                    const imgGenerada = document.createElement('img');
+                    imgGenerada.src = canvasTmp.toDataURL('image/png');
+                    imgGenerada.className = 'capa-borde-render no-captura-limpiar';
+                    imgGenerada.style.position = 'absolute';
+                    imgGenerada.style.top = '0';
+                    imgGenerada.style.left = '0';
+                    imgGenerada.style.width = '100%';
+                    imgGenerada.style.height = '100%';
+                    imgGenerada.style.pointerEvents = 'none';
+                    imgGenerada.alt = '';
+
+                    capa.classList.add('oculto-temporal-captura');
+                    capa.insertAdjacentElement('afterend', imgGenerada);
+
+                    reemplazos.push({ original: capa, generada: imgGenerada });
+                } catch (err) {
+                    console.warn('Captura: no se pudo generar el borde de color para un recuadro, se ocultará.', err);
+                    capa.classList.add('oculto-temporal-captura');
+                    reemplazos.push({ original: capa, generada: null });
+                }
+            });
+
+            return reemplazos;
+        }
+
+        function eliminarImagenesCapaBorde(reemplazos) {
+            reemplazos.forEach(({ original, generada }) => {
+                if (generada && generada.parentElement) {
+                    generada.parentElement.removeChild(generada);
+                }
+                if (original) {
+                    original.classList.remove('oculto-temporal-captura');
+                }
+            });
+        }
+
+        async function capturarPaginaComoJPG() {
+            const boton = document.getElementById('btnCapturarPagina');
+            const textoBoton = document.getElementById('btnCapturarTexto');
+            if (!boton || boton.disabled) return;
+
+            if (typeof html2canvas !== 'function') {
+                alert('No se ha podido cargar la herramienta de captura. Revisa tu conexión a Internet e inténtalo de nuevo.');
                 return;
             }
 
-            renderHistoryModal();
-        }
+            const textoOriginal = textoBoton ? textoBoton.textContent : 'Descargar imagen';
+            boton.disabled = true;
+            if (textoBoton) textoBoton.textContent = 'Generando...';
 
-        function renderHistoryModal() {
-            historyDatesContainer.innerHTML = '';
-            parsedHistoryGroups.forEach((group) => {
-                const btn = document.createElement('button');
-                btn.className = 'history-date-btn';
-                btn.innerHTML = `
-                    <span>📅 ${group.date}</span>
-                    <span class="history-date-badge">${group.matches.length} partido(s)</span>
-                `;
-                btn.addEventListener('click', () => {
-                    loadMatchesFromGroup(group);
-                    historyModal.style.display = 'none';
+            let reemplazosCapaBorde = [];
+
+            try {
+                await esperarImagenesCargadas();
+
+                const areaCaptura = document.getElementById('areaCaptura') || document.body;
+                const anchoExacto = areaCaptura.offsetWidth;
+                const altoExacto = areaCaptura.offsetHeight;
+                const anchoVentana = window.innerWidth;
+                const altoVentana = window.innerHeight;
+
+                const escala = window.devicePixelRatio && window.devicePixelRatio > 1
+                    ? Math.min(window.devicePixelRatio, 2.5)
+                    : 1.5;
+
+                reemplazosCapaBorde = await generarImagenesCapaBorde(escala);
+                await new Promise(resolve => setTimeout(resolve, 60));
+
+                const canvas = await html2canvas(areaCaptura, {
+                    backgroundColor: '#000000',
+                    useCORS: true,
+                    allowTaint: false,
+                    scale: escala,
+                    width: anchoExacto,
+                    height: altoExacto,
+                    windowWidth: anchoVentana,
+                    windowHeight: altoVentana,
+                    x: 0,
+                    y: 0,
+                    scrollX: 0,
+                    scrollY: 0,
+                    ignoreElements: (el) => el && el.classList && el.classList.contains('no-captura')
                 });
-                historyDatesContainer.appendChild(btn);
+
+                const nombreArchivo = construirNombreArchivoCaptura();
+
+                canvas.toBlob((blob) => {
+                    if (!blob) {
+                        alert('No se ha podido generar la imagen. Inténtalo de nuevo.');
+                        return;
+                    }
+                    descargarBlobComoArchivo(blob, nombreArchivo);
+                }, 'image/jpeg', 0.92);
+
+            } catch (err) {
+                console.error('Error al generar la captura de la página:', err);
+                alert('No se ha podido generar la imagen. Inténtalo de nuevo.');
+            } finally {
+                eliminarImagenesCapaBorde(reemplazosCapaBorde);
+                boton.disabled = false;
+                if (textoBoton) textoBoton.textContent = textoOriginal;
+            }
+        }
+    </script>
+
+    <script>
+        // ================== GUARDAR HISTÓRICO (Historico.txt) ==================
+
+        const HIST_DB_NOMBRE = 'NouVoleiAlziraDB';
+        const HIST_DB_VERSION = 1;
+        const HIST_DB_STORE = 'handles';
+        const HIST_CLAVE_HANDLE = 'historicoTxtHandle';
+        const HIST_CLAVE_LOCALSTORAGE = 'historicoTxtContenido';
+
+        function histAbrirDB() {
+            return new Promise((resolve, reject) => {
+                if (!('indexedDB' in window)) { reject(new Error('IndexedDB no soportado')); return; }
+                const req = indexedDB.open(HIST_DB_NOMBRE, HIST_DB_VERSION);
+                req.onupgradeneeded = () => {
+                    if (!req.result.objectStoreNames.contains(HIST_DB_STORE)) {
+                        req.result.createObjectStore(HIST_DB_STORE);
+                    }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
             });
-            historyModal.style.display = 'flex';
         }
 
-        function loadMatchesFromGroup(group) {
-            // Limpiar tarjetas del cartel actual
-            mainContent.innerHTML = '';
-
-            // Asignar fecha extraída al banner
-            document.getElementById('date-text').textContent = group.date.toLowerCase();
-            fitCalendarText();
-
-            // Crear recuadros para cada partido usando la función estándar
-            group.matches.forEach(match => {
-                createNewCard();
-                const card = mainContent.lastElementChild;
-                applyMatchDataToCard(card, match.homeTeam, match.awayTeam, match.category);
-            });
-
-            updateAddFirstButtonVisibility();
-            saveAppState();
-            showToast(`Cargados ${group.matches.length} partido(s) para la fecha seleccionada.`);
-        }
-
-        function applyMatchDataToCard(card, homeTeamName, awayTeamName, matchCategory = '') {
-            // Buscar coincidencia en bases de datos locales (Equipos NVA y Otros Equipos)
-            function findTeamData(teamName, matchCat = '') {
-                const search = teamName.trim().toUpperCase();
-                const catSearch = matchCat.trim().toUpperCase();
-
-                let found = null;
-                if (catSearch) {
-                    found = EQUIPOS_NVA_DATA.find(item => 
-                        (item.EQUIPO || item.equipo || '').toString().trim().toUpperCase() === search &&
-                        (item.CATEGORIA || item.categoria || '').toString().trim().toUpperCase() === catSearch
-                    );
-                }
-                if (!found) {
-                    found = EQUIPOS_NVA_DATA.find(item => (item.EQUIPO || item.equipo || '').toString().trim().toUpperCase() === search);
-                }
-                if (found) return { data: found, isNva: true };
-
-                if (catSearch) {
-                    found = OTROS_EQUIPOS_DATA.find(item => 
-                        (item.EQUIPO || item.equipo || '').toString().trim().toUpperCase() === search &&
-                        (item.CATEGORIA || item.categoria || '').toString().trim().toUpperCase() === catSearch
-                    );
-                }
-                if (!found) {
-                    found = OTROS_EQUIPOS_DATA.find(item => (item.EQUIPO || item.equipo || '').toString().trim().toUpperCase() === search);
-                }
-                if (found) return { data: found, isNva: false };
-
+        async function histObtenerHandleGuardado() {
+            try {
+                const db = await histAbrirDB();
+                return await new Promise((resolve, reject) => {
+                    const tx = db.transaction(HIST_DB_STORE, 'readonly');
+                    const store = tx.objectStore(HIST_DB_STORE);
+                    const req = store.get(HIST_CLAVE_HANDLE);
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = () => reject(req.error);
+                });
+            } catch (err) {
                 return null;
             }
-
-            const homeMatch = findTeamData(homeTeamName, matchCategory);
-            const awayMatch = findTeamData(awayTeamName, matchCategory);
-
-            // 1. Asignar nombres
-            const homeSpan = card.querySelector('.team-home-container .team-inner-text');
-            const awaySpan = card.querySelector('.team-away-container .team-inner-text');
-            homeSpan.textContent = homeTeamName;
-            awaySpan.textContent = awayTeamName;
-
-            // 2. Asignar escudos / logos si existen
-            const homeBadgeImg = card.querySelector('.badge-home img');
-            if (homeMatch && homeMatch.data) {
-                const logoVal = homeMatch.data.LOGO || homeMatch.data.logo;
-                if (logoVal && String(logoVal).trim() !== "" && String(logoVal).trim() !== "NaN") {
-                    homeBadgeImg.src = `LOGOs/${logoVal}.png`;
-                    homeBadgeImg.style.display = 'block';
-                }
-            }
-
-            const awayBadgeImg = card.querySelector('.badge-away img');
-            if (awayMatch && awayMatch.data) {
-                const logoVal = awayMatch.data.LOGO || awayMatch.data.logo;
-                if (logoVal && String(logoVal).trim() !== "" && String(logoVal).trim() !== "NaN") {
-                    awayBadgeImg.src = `LOGOs/${logoVal}.png`;
-                    awayBadgeImg.style.display = 'block';
-                }
-            }
-
-            // 3. Aplicar categoría y color si es equipo NVA (o la categoría del historial)
-            const nvaTeamInfo = (homeMatch && homeMatch.isNva) ? homeMatch : ((awayMatch && awayMatch.isNva) ? awayMatch : null);
-            const categoryEl = card.querySelector('.text-category');
-            if (nvaTeamInfo && nvaTeamInfo.data) {
-                const categoryName = (nvaTeamInfo.data.CATEGORIA || nvaTeamInfo.data.categoria || matchCategory || '').toString().trim();
-                const colorCode = nvaTeamInfo.data.COLOR || nvaTeamInfo.data.color || '';
-
-                if (categoryName) categoryEl.textContent = categoryName;
-                if (colorCode) {
-                    const cardBg = card.querySelector('.card-bg');
-                    cardBg.dataset.appliedColor = colorCode;
-                    applyColorFilter(cardBg, colorCode);
-                }
-            } else if (matchCategory) {
-                categoryEl.textContent = matchCategory.trim();
-            }
-
-            // 4. Ajuste dinámico de dimensiones de texto
-            autoFitTeamText(card.querySelector('.team-home-container'), homeSpan);
-            autoFitTeamText(card.querySelector('.team-away-container'), awaySpan);
         }
 
-        // ==========================================================================
-        // CARGA EXCEL Y FUNCIONES AUXILIARES
-        // ==========================================================================
-        function processWorkbook(workbook, sourceName) {
-            let nvaSheetName = "Equipos NVA";
-            let othersSheetName = "OTROS Equipos";
-
-            if (!workbook.Sheets[nvaSheetName]) nvaSheetName = workbook.SheetNames[0];
-            if (!workbook.Sheets[othersSheetName] && workbook.SheetNames.length > 1) othersSheetName = workbook.SheetNames[1];
-
-            let loadedNva = [];
-            let loadedOthers = [];
-
-            if (workbook.Sheets[nvaSheetName]) loadedNva = XLSX.utils.sheet_to_json(workbook.Sheets[nvaSheetName]);
-            if (workbook.Sheets[othersSheetName] && othersSheetName !== nvaSheetName) loadedOthers = XLSX.utils.sheet_to_json(workbook.Sheets[othersSheetName]);
-
-            if (loadedNva.length > 0 || loadedOthers.length > 0) {
-                if (loadedNva.length > 0) EQUIPOS_NVA_DATA = loadedNva;
-                if (loadedOthers.length > 0) OTROS_EQUIPOS_DATA = loadedOthers;
-
-                renderTeamModalList();
-                showToast(`Excel actualizado con éxito desde '${sourceName}'.`);
-                return true;
-            } else {
-                showToast("El archivo Excel está vacío o no es válido.", true);
-                return false;
-            }
-        }
-
-        async function tryAutoLoadExcel() {
-            const fileNames = ["DATOS.xls", "DATOS.xlsx", "Datos.xls", "Datos.xlsx"];
-            for (let fileName of fileNames) {
-                try {
-                    const response = await fetch(fileName);
-                    if (!response.ok) continue;
-                    const arrayBuffer = await response.arrayBuffer();
-                    const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
-                    if (processWorkbook(workbook, fileName)) return;
-                } catch (err) {}
-            }
-        }
-
-        function fitCalendarText() {
-            if (!dateText.textContent) return;
-            dateText.style.transform = 'none';
-            const targetHeight = textContainer.clientHeight * 0.78;
-            dateText.style.fontSize = `${targetHeight}px`;
-
-            const availableWidth = textContainer.clientWidth;
-            const naturalTextWidth = dateText.offsetWidth;
-
-            if (naturalTextWidth > 0 && availableWidth > 0) {
-                const scaleX = Math.min(1, availableWidth / naturalTextWidth);
-                dateText.style.transform = scaleX < 1 ? `scaleX(${scaleX})` : 'none';
-            }
-        }
-
-        function renderCalendar() {
-            const year = calendarViewDate.getFullYear();
-            const month = calendarViewDate.getMonth();
-
-            calendarMonthTitle.textContent = `${MONTH_NAMES[month]} ${year}`;
-            calendarDaysGrid.innerHTML = '';
-
-            const firstDayOfMonth = new Date(year, month, 1);
-            let startDayOfWeek = firstDayOfMonth.getDay(); 
-            startDayOfWeek = (startDayOfWeek === 0) ? 6 : startDayOfWeek - 1;
-
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-            for (let i = 0; i < startDayOfWeek; i++) {
-                const emptyCell = document.createElement('div');
-                emptyCell.className = 'calendar-day empty';
-                calendarDaysGrid.appendChild(emptyCell);
-            }
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayCell = document.createElement('div');
-                dayCell.className = 'calendar-day';
-                dayCell.textContent = day;
-
-                const currentDate = new Date(year, month, day);
-                const timeVal = currentDate.getTime();
-
-                let isStart = selectedStartDate && timeVal === selectedStartDate.getTime();
-                let isEnd = selectedEndDate && timeVal === selectedEndDate.getTime();
-                let isInRange = selectedStartDate && selectedEndDate && timeVal > selectedStartDate.getTime() && timeVal < selectedEndDate.getTime();
-
-                if (isStart || isEnd) dayCell.classList.add('selected');
-                else if (isInRange) dayCell.classList.add('in-range');
-
-                dayCell.addEventListener('click', () => handleDateClick(currentDate));
-                calendarDaysGrid.appendChild(dayCell);
-            }
-
-            updateCalendarInfoAndButton();
-        }
-
-        function handleDateClick(date) {
-            if (!selectedStartDate || (selectedStartDate && selectedEndDate)) {
-                selectedStartDate = date;
-                selectedEndDate = null;
-            } else if (selectedStartDate && !selectedEndDate) {
-                if (date.getTime() < selectedStartDate.getTime()) selectedStartDate = date;
-                else selectedEndDate = date;
-            }
-            renderCalendar();
-        }
-
-        function updateCalendarInfoAndButton() {
-            if (selectedStartDate && selectedEndDate) {
-                calendarInfoText.textContent = `Seleccionado: ${selectedStartDate.getDate()} ${MONTH_NAMES[selectedStartDate.getMonth()]} al ${selectedEndDate.getDate()} ${MONTH_NAMES[selectedEndDate.getMonth()]}`;
-                applyCalendarButton.disabled = false; applyCalendarButton.style.opacity = '1'; applyCalendarButton.style.cursor = 'pointer';
-            } else if (selectedStartDate) {
-                calendarInfoText.textContent = `Inicio seleccionado. Selecciona la fecha final.`;
-                applyCalendarButton.disabled = true; applyCalendarButton.style.opacity = '0.5'; applyCalendarButton.style.cursor = 'not-allowed';
-            } else {
-                calendarInfoText.textContent = `Haz clic en el día de inicio`;
-                applyCalendarButton.disabled = true; applyCalendarButton.style.opacity = '0.5'; applyCalendarButton.style.cursor = 'not-allowed';
-            }
-        }
-
-        prevMonthBtn.addEventListener('click', () => { calendarViewDate.setMonth(calendarViewDate.getMonth() - 1); renderCalendar(); });
-        nextMonthBtn.addEventListener('click', () => { calendarViewDate.setMonth(calendarViewDate.getMonth() + 1); renderCalendar(); });
-
-        calendarArea.addEventListener('click', () => {
-            calendarViewDate = new Date(); selectedStartDate = null; selectedEndDate = null;
-            renderCalendar(); calendarModal.style.display = 'flex';
-        });
-
-        applyCalendarButton.addEventListener('click', () => {
-            if (!selectedStartDate || !selectedEndDate) return;
-            const rawString = `del ${selectedStartDate.getDate()} de ${MONTH_NAMES[selectedStartDate.getMonth()]} al ${selectedEndDate.getDate()} de ${MONTH_NAMES[selectedEndDate.getMonth()]} del ${selectedEndDate.getFullYear()}`;
-            dateText.textContent = rawString.toLowerCase();
-            fitCalendarText();
-            calendarModal.style.display = 'none';
-            saveAppState(); 
-        });
-
-        function updateMatchGlow(card) {
-            const scoreHomeContainer = card.querySelector('.text-score-home');
-            const scoreAwayContainer = card.querySelector('.text-score-away');
-            const scoreHomeSpan = scoreHomeContainer.querySelector('.score-inner-text');
-            const scoreAwaySpan = scoreAwayContainer.querySelector('.score-inner-text');
-            const teamHomeSpan = card.querySelector('.team-home-container .team-inner-text');
-            const teamAwaySpan = card.querySelector('.team-away-container .team-inner-text');
-            const logoHomeEl = card.querySelector('.badge-home img');
-            const logoAwayEl = card.querySelector('.badge-away img');
-
-            const scoreHome = parseInt(scoreHomeSpan.textContent) || 0;
-            const scoreAway = parseInt(scoreAwaySpan.textContent) || 0;
-
-            [scoreHomeSpan, scoreAwaySpan, teamHomeSpan, teamAwaySpan].forEach(el => { 
-                if (el) el.classList.remove('glow-winner', 'glow-loser'); 
-            });
-            [logoHomeEl, logoAwayEl].forEach(el => { 
-                if (el) el.classList.remove('glow-winner-img', 'glow-loser-img'); 
-            });
-
-            if (scoreHome > scoreAway) {
-                scoreHomeSpan.classList.add('glow-winner'); 
-                teamHomeSpan.classList.add('glow-winner');
-                if (logoHomeEl) logoHomeEl.classList.add('glow-winner-img');
-
-                scoreAwaySpan.classList.add('glow-loser'); 
-                teamAwaySpan.classList.add('glow-loser');
-                if (logoAwayEl) logoAwayEl.classList.add('glow-loser-img');
-            } else if (scoreAway > scoreHome) {
-                scoreAwaySpan.classList.add('glow-winner'); 
-                teamAwaySpan.classList.add('glow-winner');
-                if (logoAwayEl) logoAwayEl.classList.add('glow-winner-img');
-
-                scoreHomeSpan.classList.add('glow-loser'); 
-                teamHomeSpan.classList.add('glow-loser');
-                if (logoHomeEl) logoHomeEl.classList.add('glow-loser-img');
-            }
-        }
-
-        document.querySelectorAll('.score-option-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (currentScoreContainer) {
-                    const span = currentScoreContainer.querySelector('.score-inner-text');
-                    if (span) span.textContent = btn.getAttribute('data-value');
-                    
-                    autoFitScoreText(currentScoreContainer);
-
-                    const activeCard = currentScoreContainer.closest('.match-card-container');
-                    if (activeCard) updateMatchGlow(activeCard);
-                    saveAppState(); 
-                }
-                scoreModal.style.display = 'none';
-                currentScoreContainer = null;
-            });
-        });
-
-        function applyColorFilter(cardBg, colorCode) {
-            if (!colorCode || String(colorCode).trim() === '') return;
-            const cleanHex = String(colorCode).replace('#', '').trim();
-            if (cleanHex.length !== 6) return;
-
-            const img = new Image();
-            img.crossOrigin = "anonymous";
-            img.src = "Imagenes/Cuadro BASE.png"; 
-            
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = img.naturalWidth || 1000;
-                canvas.height = img.naturalHeight || 444;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                ctx.globalCompositeOperation = 'source-in';
-                ctx.fillStyle = '#' + cleanHex;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.globalCompositeOperation = 'source-over';
-                cardBg.src = canvas.toDataURL('image/png');
-                cardBg.style.filter = 'none'; 
-            };
-        }
-
-        function autoFitTeamText(container, span) {
-            span.style.transform = 'none';
-            const contWidth = container.clientWidth;
-            const contHeight = container.clientHeight;
-            if (contWidth === 0 || contHeight === 0) return;
-
-            const baseFontSize = contHeight * 0.38;
-            span.style.fontSize = `${baseFontSize}px`;
-
-            const textWidth = span.scrollWidth;
-            const textHeight = span.scrollHeight;
-
-            const scaleX = Math.min(1, contWidth / textWidth);
-            const scaleY = Math.min(1, contHeight / textHeight);
-
-            if (scaleX < 1 || scaleY < 1) span.style.transform = `scale(${scaleX}, ${scaleY})`;
-        }
-
-        function refreshAllTeamTexts() {
-            document.querySelectorAll('.match-card-container').forEach(card => {
-                const homeScoreBox = card.querySelector('.text-score-home');
-                const awayScoreBox = card.querySelector('.text-score-away');
-
-                autoFitTeamText(card.querySelector('.team-home-container'), card.querySelector('.team-home-container .team-inner-text'));
-                autoFitTeamText(card.querySelector('.team-away-container'), card.querySelector('.team-away-container .team-inner-text'));
-                
-                if (homeScoreBox) autoFitScoreText(homeScoreBox);
-                if (awayScoreBox) autoFitScoreText(awayScoreBox);
-            });
-        }
-
-        window.addEventListener('resize', () => { fitCalendarText(); refreshAllTeamTexts(); });
-
-        tabNvaBtn.addEventListener('click', () => { activeModalTab = 'nva'; tabNvaBtn.classList.add('active'); tabOthersBtn.classList.remove('active'); renderTeamModalList(); });
-        tabOthersBtn.addEventListener('click', () => { activeModalTab = 'others'; tabOthersBtn.classList.add('active'); tabNvaBtn.classList.remove('active'); renderTeamModalList(); });
-
-        function renderTeamModalList() {
-            teamListContainer.innerHTML = '';
-            let dataset = [];
-
-            if (activeModalTab === 'nva') {
-                dataset = [...EQUIPOS_NVA_DATA];
-            } else {
-                let currentCategory = "";
-                if (currentActiveCard) {
-                    const catEl = currentActiveCard.querySelector('.text-category');
-                    if (catEl) currentCategory = catEl.textContent.trim().toUpperCase();
-                }
-
-                if (currentCategory) {
-                    const matchingTeams = OTROS_EQUIPOS_DATA.filter(item => (item.CATEGORIA || item.categoria || '').toString().trim().toUpperCase() === currentCategory)
-                        .sort((a, b) => (a.EQUIPO || a.equipo || '').toString().toUpperCase().localeCompare((b.EQUIPO || b.equipo || '').toString().toUpperCase(), 'es'));
-                    const remainingTeams = OTROS_EQUIPOS_DATA.filter(item => (item.CATEGORIA || item.categoria || '').toString().trim().toUpperCase() !== currentCategory)
-                        .sort((a, b) => (a.EQUIPO || a.equipo || '').toString().toUpperCase().localeCompare((b.EQUIPO || b.equipo || '').toString().toUpperCase(), 'es'));
-                    dataset = [...matchingTeams, ...remainingTeams];
-                } else {
-                    dataset = [...OTROS_EQUIPOS_DATA].sort((a, b) => (a.EQUIPO || a.equipo || '').toString().toUpperCase().localeCompare((b.EQUIPO || b.equipo || '').toString().toUpperCase(), 'es'));
-                }
-            }
-
-            if (dataset.length === 0) {
-                teamListContainer.innerHTML = `<div style="color: #888; font-size: 13px; text-align: center; padding: 20px;">No hay equipos cargados en esta categoría.</div>`;
-                return;
-            }
-
-            dataset.forEach((item) => {
-                const btn = document.createElement('div');
-                btn.className = 'team-option-btn';
-                
-                const logoVal = item.LOGO || item.logo || '';
-                let teamName = item.EQUIPO || item.equipo || '';
-                const categoryName = (item.CATEGORIA || item.categoria || '').toString().trim();
-                const colorCode = item.COLOR || item.color || '';
-
-                const logoPreview = (logoVal && String(logoVal).trim() !== "NaN") 
-                    ? `<img src="LOGOs/${logoVal}.png" style="width:20px; height:20px; object-fit:contain; vertical-align:middle; margin-right:6px;" alt="Logo">` 
-                    : `<span style="color:#666; font-size:11px; margin-right:6px;">[Sin Logo]</span>`;
-
-                if (activeModalTab === 'nva') {
-                    const subtitle = categoryName ? ` - <span style="color:#ccc;">${categoryName}</span>` : '';
-                    btn.innerHTML = `<div style="display:flex; align-items:center; overflow:hidden; text-overflow:ellipsis;">${logoPreview} <b style="margin-right:6px;">${teamName}</b>${subtitle}</div>`;
-                } else {
-                    let currentCategory = "";
-                    if (currentActiveCard) {
-                        const catEl = currentActiveCard.querySelector('.text-category');
-                        if (catEl) currentCategory = catEl.textContent.trim().toUpperCase();
-                    }
-                    const isMatchingCategory = currentCategory && categoryName.toUpperCase() === currentCategory;
-                    const textStyle = isMatchingCategory ? "color: var(--nva-success); text-shadow: 0 0 8px rgba(0,255,102,0.4);" : "";
-                    btn.innerHTML = `<div style="display:flex; align-items:center; overflow:hidden; text-overflow:ellipsis;">${logoPreview} <b style="margin-right:6px; ${textStyle}">${teamName}</b></div>`;
-                }
-                
-                btn.addEventListener('click', () => {
-                    if (!currentActiveCard) return;
-
-                    if (!categoryName) {
-                        const newName = prompt("Este equipo no tiene categoría asignada. Puedes modificar su nombre antes de insertarlo:", teamName);
-                        if (newName === null) return; 
-                        if (newName.trim() !== "") teamName = newName.trim();
-                    }
-
-                    const cardBg = currentActiveCard.querySelector('.card-bg');
-                    const categoryEl = currentActiveCard.querySelector('.text-category');
-                    const targetCont = currentActiveCard.querySelector(currentTargetSide === 'home' ? '.team-home-container' : '.team-away-container');
-                    const targetSpan = targetCont.querySelector('.team-inner-text');
-                    const targetBadgeImg = currentActiveCard.querySelector(currentTargetSide === 'home' ? '.badge-home img' : '.badge-away img');
-
-                    targetSpan.textContent = teamName;
-                    autoFitTeamText(targetCont, targetSpan);
-
-                    if (logoVal && String(logoVal).trim() !== "" && String(logoVal).trim() !== "NaN") {
-                        targetBadgeImg.src = `LOGOs/${logoVal}.png`;
-                        targetBadgeImg.style.display = 'block';
-                    } else {
-                        targetBadgeImg.style.display = 'none';
-                    }
-
-                    if (activeModalTab === 'nva') {
-                        categoryEl.textContent = categoryName;
-                        if (colorCode) {
-                            applyColorFilter(cardBg, colorCode);
-                            cardBg.dataset.appliedColor = colorCode; 
-                        }
-                    }
-
-                    teamPickerModal.style.display = 'none';
-                    saveAppState(); 
+        async function histGuardarHandle(handle) {
+            try {
+                const db = await histAbrirDB();
+                await new Promise((resolve, reject) => {
+                    const tx = db.transaction(HIST_DB_STORE, 'readwrite');
+                    const store = tx.objectStore(HIST_DB_STORE);
+                    const req = store.put(handle, HIST_CLAVE_HANDLE);
+                    req.onsuccess = () => resolve();
+                    req.onerror = () => reject(req.error);
                 });
-                teamListContainer.appendChild(btn);
-            });
+            } catch (err) {
+                console.warn('No se pudo recordar el archivo histórico seleccionado.', err);
+            }
         }
 
-        applyCustomTeamBtn.addEventListener('click', () => {
-            const val = customTeamInput.value.trim();
-            if (val && currentActiveCard) {
-                const targetCont = currentActiveCard.querySelector(currentTargetSide === 'home' ? '.team-home-container' : '.team-away-container');
-                const targetSpan = targetCont.querySelector('.team-inner-text');
-                targetSpan.textContent = val;
-                autoFitTeamText(targetCont, targetSpan);
-                saveAppState(); 
+        function histObtenerTextoFechaGeneral() {
+            const elSpan = document.querySelector('#headerTextoFecha span');
+            if (elSpan && elSpan.textContent.trim() !== '') {
+                return elSpan.textContent.trim();
             }
-            teamPickerModal.style.display = 'none';
-            customTeamInput.value = '';
-        });
+            return '';
+        }
 
-        // ==========================================================================
-        // FABRICACIÓN Y GESTIÓN DE RECUADROS DE PARTIDO
-        // ==========================================================================
-        function createNewCard(insertAfterElement = null) {
-            const clone = cardTemplate.content.cloneNode(true);
-            const cardContainer = clone.querySelector('.match-card-container');
-            const deleteBtn = clone.querySelector('.btn-delete-card');
-            const addBelowBtn = clone.querySelector('.btn-add-card-below');
-            const homeCont = clone.querySelector('.team-home-container');
-            const awayCont = clone.querySelector('.team-away-container');
-            const homeSpan = homeCont.querySelector('.team-inner-text');
-            const awaySpan = awayCont.querySelector('.team-inner-text');
-            const scoreHomeBox = clone.querySelector('.text-score-home');
-            const scoreAwayBox = clone.querySelector('.text-score-away');
-            
-            const photoLayer = clone.querySelector('.card-photo-layer');
-            const photoInput = photoLayer.querySelector('input[type="file"]');
-            const photoImg = photoLayer.querySelector('.photo-img');
-            const photoPlaceholder = photoLayer.querySelector('.photo-placeholder');
+        function histConstruirBloqueDatos() {
+            const lineas = [];
+            lineas.push(histObtenerTextoFechaGeneral());
 
-            const cardBg = clone.querySelector('.card-bg');
-            cardBg.dataset.appliedColor = 'FFFFFF';
-            applyColorFilter(cardBg, 'FFFFFF');
+            const recuadros = document.querySelectorAll('.recuadro-partido');
+            recuadros.forEach(recuadro => {
+                const nombresEquipo = recuadro.querySelectorAll('.nombre-equipo');
 
-            // --- VARIABLES DE GESTOS E IMAGEN ---
-            let imgScale = 1, imgTranslateX = 0, imgTranslateY = 0;
-            let isDraggingImg = false;
-            let dragStartX = 0, dragStartY = 0;
-            let initialPinchDistance = null;
-            let initialScale = 1;
+                // Reemplazar saltos de línea/etiquetas por espacios y limpiar espacios dobles
+                const equipoCasa = nombresEquipo[0] 
+                    ? (nombresEquipo[0].innerText || nombresEquipo[0].textContent).replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim() 
+                    : '';
 
-            function updateImgTransform() { 
-                photoImg.style.transform = `translate(${imgTranslateX}px, ${imgTranslateY}px) scale(${imgScale})`; 
-            }
+                const equipoVisitante = nombresEquipo[1] 
+                    ? (nombresEquipo[1].innerText || nombresEquipo[1].textContent).replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim() 
+                    : '';
 
-            function getDistance(touch1, touch2) {
-                return Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
-            }
+                const estado = recuadro.datosEstado || {};
+                const fecha = (estado.fecha || '').trim();
+                const hora = (estado.hora || '').trim();
+                const lugar = (estado.lugar || '').trim();
+                const categoria = (recuadro.getAttribute('data-categoria') || '').trim();
 
-            // --- GESTOS TÁCTILES INSTANTÁNEOS ---
-            photoImg.addEventListener('touchstart', (e) => {
-                if (e.touches.length === 2) {
-                    e.preventDefault();
-                    isDraggingImg = false;
-                    initialPinchDistance = getDistance(e.touches[0], e.touches[1]);
-                    initialScale = imgScale;
-                } else if (e.touches.length === 1) {
-                    e.preventDefault();
-                    isDraggingImg = true;
-                    dragStartX = e.touches[0].clientX - imgTranslateX;
-                    dragStartY = e.touches[0].clientY - imgTranslateY;
-                }
-            }, { passive: false });
+                lineas.push(`${equipoCasa} | ${equipoVisitante} | ${fecha} | ${hora} | ${lugar} | ${categoria}`);
+            });
 
-            photoImg.addEventListener('touchmove', (e) => {
-                if (e.touches.length === 2) {
-                    e.preventDefault();
-                    if (initialPinchDistance) {
-                        const currentDistance = getDistance(e.touches[0], e.touches[1]);
-                        const scaleDiff = currentDistance / initialPinchDistance;
-                        imgScale = Math.max(0.05, initialScale * scaleDiff);
-                        updateImgTransform();
+            return lineas.join('\n');
+        }
+
+        async function histLeerArchivoComoTexto(handle) {
+            const archivo = await handle.getFile();
+            return await archivo.text();
+        }
+
+        async function histGuardarConFileSystemAPI(bloqueNuevo) {
+            let handle = await histObtenerHandleGuardado();
+
+            if (handle) {
+                const permisoActual = await handle.queryPermission({ mode: 'readwrite' });
+                if (permisoActual !== 'granted') {
+                    const permisoSolicitado = await handle.requestPermission({ mode: 'readwrite' });
+                    if (permisoSolicitado !== 'granted') {
+                        handle = null;
                     }
-                } else if (e.touches.length === 1 && isDraggingImg) {
-                    e.preventDefault();
-                    imgTranslateX = e.touches[0].clientX - dragStartX;
-                    imgTranslateY = e.touches[0].clientY - dragStartY;
-                    updateImgTransform();
                 }
-            }, { passive: false });
+            }
 
-            photoImg.addEventListener('touchend', () => {
-                initialPinchDistance = null;
-                isDraggingImg = false;
-            });
+            if (!handle) {
+                handle = await window.showSaveFilePicker({
+                    suggestedName: 'Historico.txt',
+                    types: [{ description: 'Archivo de texto', accept: { 'text/plain': ['.txt'] } }]
+                });
+                await histGuardarHandle(handle);
+            }
 
-            // --- GESTOS DE RATÓN INSTANTÁNEOS ---
-            photoImg.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                const zoomIntensity = 0.1;
-                if (e.deltaY < 0) imgScale += zoomIntensity;
-                else imgScale = Math.max(0.05, imgScale - zoomIntensity);
-                updateImgTransform();
-            }, { passive: false });
+            let contenidoActual = '';
+            try {
+                contenidoActual = await histLeerArchivoComoTexto(handle);
+            } catch (err) {
+                contenidoActual = '';
+            }
 
-            photoImg.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                isDraggingImg = true;
-                dragStartX = e.clientX - imgTranslateX;
-                dragStartY = e.clientY - imgTranslateY;
-            });
+            const nuevoContenido = contenidoActual.trim() !== ''
+                ? bloqueNuevo + '\n\n' + contenidoActual
+                : bloqueNuevo;
 
-            window.addEventListener('mousemove', (e) => {
-                if (isDraggingImg) {
-                    e.preventDefault();
-                    imgTranslateX = e.clientX - dragStartX;
-                    imgTranslateY = e.clientY - dragStartY;
-                    updateImgTransform();
-                }
-            });
-
-            window.addEventListener('mouseup', () => {
-                if (isDraggingImg) {
-                    isDraggingImg = false;
-                }
-            });
-
-            homeCont.style.left = `${CONFIG_AREA.homeLeft}%`; homeCont.style.width = `${CONFIG_AREA.homeWidth}%`; homeCont.style.height = `${CONFIG_AREA.height}%`; homeCont.style.bottom = `${CONFIG_AREA.bottomOffset}%`;
-            awayCont.style.left = `${CONFIG_AREA.awayLeft}%`; awayCont.style.width = `${CONFIG_AREA.awayWidth}%`; awayCont.style.height = `${CONFIG_AREA.height}%`; awayCont.style.bottom = `${CONFIG_AREA.bottomOffset}%`;
-
-            homeCont.addEventListener('click', () => {
-                currentActiveCard = cardContainer; currentTargetSide = 'home'; modalTeamTitle.textContent = 'Seleccionar Equipo de Casa';
-                const isHomeDefault = homeSpan.textContent.trim().toUpperCase() === 'HOME';
-                const isAwayDefault = awaySpan.textContent.trim().toUpperCase() === 'VISIT';
-                if (isHomeDefault && isAwayDefault) { activeModalTab = 'nva'; tabNvaBtn.classList.add('active'); tabOthersBtn.classList.remove('active'); }
-                else { activeModalTab = 'others'; tabOthersBtn.classList.add('active'); tabNvaBtn.classList.remove('active'); }
-                teamPickerModal.style.display = 'flex'; renderTeamModalList();
-            });
-
-            awayCont.addEventListener('click', () => {
-                currentActiveCard = cardContainer; currentTargetSide = 'away'; modalTeamTitle.textContent = 'Seleccionar Equipo de Visita';
-                const isHomeDefault = homeSpan.textContent.trim().toUpperCase() === 'HOME';
-                const isAwayDefault = awaySpan.textContent.trim().toUpperCase() === 'VISIT';
-                if (isHomeDefault && isAwayDefault) { activeModalTab = 'nva'; tabNvaBtn.classList.add('active'); tabOthersBtn.classList.remove('active'); } 
-                else { activeModalTab = 'others'; tabOthersBtn.classList.add('active'); tabNvaBtn.classList.remove('active'); }
-                teamPickerModal.style.display = 'flex'; renderTeamModalList();
-            });
-
-            scoreHomeBox.addEventListener('click', () => { currentScoreContainer = scoreHomeBox; scoreModalTitle.textContent = 'Seleccionar Tanteo Local'; scoreModal.style.display = 'flex'; });
-            scoreAwayBox.addEventListener('click', () => { currentScoreContainer = scoreAwayBox; scoreModalTitle.textContent = 'Seleccionar Tanteo Visitante'; scoreModal.style.display = 'flex'; });
-
-            deleteBtn.addEventListener('click', () => {
-                if (photoImg.src && !photoImg.src.endsWith(window.location.host + '/')) {
-                    photoImg.src = ''; 
-                }
-                cardContainer.remove();
-                updateAddFirstButtonVisibility();
-                saveAppState(); 
-            });
-
-            addBelowBtn.addEventListener('click', () => {
-                createNewCard(cardContainer);
-                saveAppState(); 
-            });
-
-            photoLayer.addEventListener('click', (e) => { if (e.target === photoLayer || e.target === photoPlaceholder) photoInput.click(); });
-            photoImg.addEventListener('dblclick', () => { photoInput.click(); });
-
-            photoInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        photoImg.src = event.target.result;
-                        photoImg.style.display = 'block';
-                        photoPlaceholder.style.display = 'none';
-                        imgScale = 1; imgTranslateX = 0; imgTranslateY = 0; updateImgTransform();
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-
-            if (insertAfterElement) insertAfterElement.after(cardContainer);
-            else mainContent.appendChild(cardContainer);
-
-            autoFitTeamText(homeCont, homeSpan);
-            autoFitTeamText(awayCont, awaySpan);
-            
-            autoFitScoreText(scoreHomeBox);
-            autoFitScoreText(scoreAwayBox);
-
-            cardContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            updateAddFirstButtonVisibility();
+            const writable = await handle.createWritable();
+            await writable.write(nuevoContenido);
+            await writable.close();
         }
 
-        btnAddFirst.addEventListener('click', () => { createNewCard(); saveAppState(); });
+        function histDescargarFallback(bloqueNuevo) {
+            let contenidoPrevio = '';
+            try {
+                contenidoPrevio = localStorage.getItem(HIST_CLAVE_LOCALSTORAGE) || '';
+            } catch (err) {
+                contenidoPrevio = '';
+            }
 
-        // Cierre de ventanas modales haciendo clic fuera
-        window.addEventListener('click', (e) => {
-            if (e.target === calendarModal) calendarModal.style.display = 'none';
-            if (e.target === teamPickerModal) teamPickerModal.style.display = 'none';
-            if (e.target === scoreModal) { scoreModal.style.display = 'none'; currentScoreContainer = null; }
-            if (e.target === historyModal) historyModal.style.display = 'none';
-        });
+            const nuevoContenido = contenidoPrevio.trim() !== ''
+                ? bloqueNuevo + '\n\n' + contenidoPrevio
+                : bloqueNuevo;
 
-        // === INICIALIZACIÓN DE LA APLICACIÓN ===
-        renderTeamModalList();
-        tryAutoLoadExcel();
+            try {
+                localStorage.setItem(HIST_CLAVE_LOCALSTORAGE, nuevoContenido);
+            } catch (err) {
+                console.warn('No se pudo guardar el histórico en el almacenamiento local del navegador.', err);
+            }
 
-        if (!loadAppState()) {
-            createNewCard();
-        } else {
-            // Forzar el reajuste de textos una vez que el navegador ha calculated el layout/geometría
-            requestAnimationFrame(() => {
-                setTimeout(() => {
-                    fitCalendarText();
-                    refreshAllTeamTexts();
-                }, 150);
-            });
+            const blob = new Blob([nuevoContenido], { type: 'text/plain;charset=utf-8' });
+            descargarBlobComoArchivo(blob, 'Historico.txt');
+        }
+
+        async function guardarHistorico() {
+            const boton = document.getElementById('btnGuardarHistorico');
+            const textoBoton = document.getElementById('btnGuardarHistoricoTexto');
+            if (!boton || boton.disabled) return;
+
+            const textoOriginal = textoBoton ? textoBoton.textContent : 'Guardar histórico';
+            boton.disabled = true;
+            if (textoBoton) textoBoton.textContent = 'Guardando...';
+
+            try {
+                const bloqueNuevo = histConstruirBloqueDatos();
+
+                if ('showSaveFilePicker' in window) {
+                    try {
+                        await histGuardarConFileSystemAPI(bloqueNuevo);
+                    } catch (err) {
+                        if (err && err.name === 'AbortError') {
+                            return;
+                        }
+                        console.warn('No se pudo guardar directamente en el archivo, se usará la descarga.', err);
+                        histDescargarFallback(bloqueNuevo);
+                    }
+                } else {
+                    histDescargarFallback(bloqueNuevo);
+                }
+            } catch (err) {
+                console.error('Error al guardar el histórico:', err);
+                alert('No se ha podido guardar el histórico. Inténtalo de nuevo.');
+            } finally {
+                boton.disabled = false;
+                if (textoBoton) textoBoton.textContent = textoOriginal;
+            }
         }
     </script>
 </body>
