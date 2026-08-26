@@ -389,6 +389,22 @@
             pointer-events: none;
         }
 
+        .texto-categoria-vertical {
+            position: absolute;
+            top: 50%;
+            left: 0.5%;
+            transform: translateY(-50%) rotate(-90deg);
+            transform-origin: center center;
+            color: #000000;
+            font-weight: 600;
+            font-size: 2cqw;
+            text-transform: uppercase;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 5;
+            text-shadow: 0.05em 0.05em 0.1em rgba(255,255,255,0.9);
+        }
+
         .contenido-recuadro {
             position: absolute;
             top: 0;
@@ -1516,8 +1532,10 @@
                 rivalLogo: '',
                 fecha: '',
                 hora: '',
-                lugar: campoPredefinido
+                lugar: campoPredefinido,
+                categoria: categoriaClub
             };
+            estado.categoria = categoriaClub;
             mapaDatosPartidos[indexFila] = estado;
 
             const recuadro = document.createElement('div');
@@ -1534,6 +1552,11 @@
 
             const capaBorde = document.createElement('div');
             capaBorde.className = 'capa-borde';
+
+            const primeraPalabraCategoria = categoriaClub ? categoriaClub.trim().split(/\s+/)[0] : '';
+            const divCatVert = document.createElement('div');
+            divCatVert.className = 'texto-categoria-vertical';
+            divCatVert.textContent = primeraPalabraCategoria;
 
             const contenido = document.createElement('div');
             contenido.className = 'contenido-recuadro';
@@ -1612,6 +1635,7 @@
 
             recuadro.appendChild(imgFondo);
             recuadro.appendChild(capaBorde);
+            recuadro.appendChild(divCatVert);
             recuadro.appendChild(contenido);
 
             setTimeout(() => {
@@ -2331,11 +2355,12 @@
                     : '';
 
                 const estado = recuadro.datosEstado || {};
+                const categoria = (estado.categoria || '').trim();
                 const fecha = (estado.fecha || '').trim();
                 const hora = (estado.hora || '').trim();
                 const lugar = (estado.lugar || '').trim();
 
-                lineas.push(`${equipoCasa} | ${equipoVisitante} | ${fecha} | ${hora} | ${lugar}`);
+                lineas.push(`${categoria} | ${equipoCasa} | ${equipoVisitante} | ${fecha} | ${hora} | ${lugar}`);
             });
 
             return lineas.join('\n');
