@@ -2320,8 +2320,15 @@
             const recuadros = document.querySelectorAll('.recuadro-partido');
             recuadros.forEach(recuadro => {
                 const nombresEquipo = recuadro.querySelectorAll('.nombre-equipo');
-                const equipoCasa = nombresEquipo[0] ? nombresEquipo[0].textContent.trim() : '';
-                const equipoVisitante = nombresEquipo[1] ? nombresEquipo[1].textContent.trim() : '';
+
+                // Reemplazar saltos de línea/etiquetas por espacios y limpiar espacios dobles
+                const equipoCasa = nombresEquipo[0] 
+                    ? (nombresEquipo[0].innerText || nombresEquipo[0].textContent).replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim() 
+                    : '';
+
+                const equipoVisitante = nombresEquipo[1] 
+                    ? (nombresEquipo[1].innerText || nombresEquipo[1].textContent).replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim() 
+                    : '';
 
                 const estado = recuadro.datosEstado || {};
                 const fecha = (estado.fecha || '').trim();
