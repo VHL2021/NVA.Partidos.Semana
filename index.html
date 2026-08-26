@@ -391,18 +391,23 @@
 
         .texto-categoria-vertical {
             position: absolute;
-            top: 50%;
-            left: 0.33%;
-            transform: translateY(-50%) rotate(-90deg);
-            transform-origin: center center;
-            color: #FFFFFF;
-            font-weight: 600;
-            font-size: 2cqw;
+            top: 0;
+            left: 0;
+            width: 6.5%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000000;
+            font-weight: 800;
+            font-style: italic;
             text-transform: uppercase;
-            white-space: nowrap;
-            pointer-events: none;
+            font-size: 2.2cqw;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
             z-index: 5;
-            text-shadow: 0.05em 0.05em 0.1em rgba(0,0,0,0.9);
+            pointer-events: none;
+            user-select: none;
         }
 
         .contenido-recuadro {
@@ -1532,16 +1537,15 @@
                 rivalLogo: '',
                 fecha: '',
                 hora: '',
-                lugar: campoPredefinido,
-                categoria: categoriaClub
+                lugar: campoPredefinido
             };
-            estado.categoria = categoriaClub;
             mapaDatosPartidos[indexFila] = estado;
 
             const recuadro = document.createElement('div');
             recuadro.className = 'recuadro-partido';
             recuadro.setAttribute('data-index', indexFila);
             recuadro.datosEstado = estado;
+            recuadro.setAttribute('data-categoria', categoriaClub);
             recuadro.style.setProperty('--color-equipo', color);
             recuadro.style.setProperty('--mask-img', RUTA_MASCARA);
 
@@ -1553,10 +1557,10 @@
             const capaBorde = document.createElement('div');
             capaBorde.className = 'capa-borde';
 
-            const primeraPalabraCategoria = categoriaClub ? categoriaClub.trim().split(/\s+/)[0] : '';
-            const divCatVert = document.createElement('div');
-            divCatVert.className = 'texto-categoria-vertical';
-            divCatVert.textContent = primeraPalabraCategoria;
+            const primeraPalabraCat = categoriaClub ? categoriaClub.split(' ')[0] : '';
+            const textoVerticalCat = document.createElement('div');
+            textoVerticalCat.className = 'texto-categoria-vertical';
+            textoVerticalCat.textContent = primeraPalabraCat;
 
             const contenido = document.createElement('div');
             contenido.className = 'contenido-recuadro';
@@ -1635,7 +1639,7 @@
 
             recuadro.appendChild(imgFondo);
             recuadro.appendChild(capaBorde);
-            recuadro.appendChild(divCatVert);
+            recuadro.appendChild(textoVerticalCat);
             recuadro.appendChild(contenido);
 
             setTimeout(() => {
@@ -2355,12 +2359,12 @@
                     : '';
 
                 const estado = recuadro.datosEstado || {};
-                const categoria = (estado.categoria || '').trim();
                 const fecha = (estado.fecha || '').trim();
                 const hora = (estado.hora || '').trim();
                 const lugar = (estado.lugar || '').trim();
+                const categoria = (recuadro.getAttribute('data-categoria') || '').trim();
 
-                lineas.push(`${categoria} | ${equipoCasa} | ${equipoVisitante} | ${fecha} | ${hora} | ${lugar}`);
+                lineas.push(`${equipoCasa} | ${equipoVisitante} | ${fecha} | ${hora} | ${lugar} | ${categoria}`);
             });
 
             return lineas.join('\n');
