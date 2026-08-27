@@ -14,6 +14,14 @@
     <!-- Librería html2canvas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
+        /*
+         * ================================================================
+         * ESTILOS GENERALES Y COMPONENTES DE LA APLICACIÓN
+         * ================================================================
+         * La página está diseñada para funcionar tanto en escritorio como
+         * en móvil. Los recuadros de partidos usan tamaños relativos para
+         * conservar su proporción al cambiar el ancho de pantalla.
+         */
         * {
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
@@ -389,6 +397,16 @@
             pointer-events: none;
         }
 
+        /*
+         * CATEGORÍA VERTICAL
+         * ------------------
+         * En pantalla se mantiene la rotación CSS original. El problema aparecía
+         * al rasterizar con html2canvas: algunas versiones/navegadores no reproducen
+         * de forma fiable la transformación de texto rotado.
+         *
+         * La corrección definitiva se aplica SOLO durante la captura (ver
+         * prepararCategoriasParaCaptura()). La interfaz normal sigue usando esta regla.
+         */
         .texto-categoria-vertical {
             position: absolute;
             top: 0;
@@ -403,12 +421,12 @@
             font-style: italic;
             text-transform: uppercase;
             font-size: 2.2cqw;
-    
-            /* Se elimina writing-mode y se usa únicamente rotación limpia */
+
+            /* Rotación visual de la categoría en la página */
             transform: rotate(270deg);
             transform-origin: center center;
             white-space: nowrap;
-    
+
             z-index: 5;
             pointer-events: none;
             user-select: none;
@@ -966,6 +984,16 @@
     </button>
 
     <script>
+        /*
+         * ================================================================
+         * DATOS, ESTADO Y LÓGICA PRINCIPAL
+         * ================================================================
+         * Este bloque controla:
+         *   1) carga de equipos desde DATOS.xls o datos de respaldo,
+         *   2) selección de partidos,
+         *   3) edición de rival, fecha, hora y ubicación,
+         *   4) generación de los recuadros.
+         */
         const equiposRespaldo = [
             {"LOGO": "Enova NVA - Infantil", "EQUIPO": "ENOVA NVA", "CATEGORIA": "INFANTIL 2ª DIVISION", "COLOR": "#c28b06", "CAMPO": "PALAU D'ESPORTS (ALZIRA)"},
             {"LOGO": "Up School NVA - Infantil", "EQUIPO": "UP! SCHOOL NVA", "CATEGORIA": "INFANTIL ZONAL", "COLOR": "#ccca20", "CAMPO": "PALAU D'ESPORTS (ALZIRA)"},
@@ -2130,6 +2158,21 @@
             }
         }
 
+        /*
+         * ================================================================
+         * CAPTURA DE LA PÁGINA COMO JPG
+         * ================================================================
+         * html2canvas no siempre representa correctamente transformaciones
+         * CSS complejas (en particular, texto rotado) al convertir el DOM
+         * a un canvas. Para evitarlo, antes de capturar sustituimos SOLO en
+         * el DOM clonado por html2canvas la categoría vertical por una imagen
+         * SVG rasterizable que ya contiene el texto girado.
+         *
+         * Importante: el DOM real de la aplicación NO se modifica de forma
+         * permanente. Por eso la edición, selección y demás funcionalidades
+         * siguen funcionando exactamente igual después de descargar el JPG.
+         */
+
         let imagenMascaraCache = null;
 
         function cargarImagenMascara() {
@@ -2216,6 +2259,111 @@
             });
         }
 
+        /**
+         * Prepara una representación robusta de las categorías verticales
+         * exclusivamente dentro del documento clonado que recibe html2canvas.
+         *
+         * ¿Por qué SVG?
+         * - El navegador pinta el texto y la rotación dentro de la propia imagen.
+         * - html2canvas ya no necesita interpretar "transform: rotate(...)" sobre
+         *   un elemento de texto HTML.
+         * - El documento original conserva el texto HTML y su comportamiento.
+         */
+        function prepararCategoriasParaCaptura(documentoClonado) {
+            if (!documentoClonado) return;
+
+            const categorias = documentoClonado.querySelectorAll('.texto-categoria-vertical');
+
+            categorias.forEach((categoria) => {
+                const recuadro = categoria.closest('.recuadro-partido');
+                if (!recuadro) return;
+
+                const anchoRecuadro = recuadro.offsetWidth;
+                const altoRecuadro = recuadro.offsetHeight;
+                if (anchoRecuadro <= 0 || altoRecuadro <= 0) return;
+
+                const estilo = window.getComputedStyle(categoria);
+                const texto = (categoria.textContent || '').trim();
+                if (!texto) return;
+
+                // Mismo centro geométrico que el elemento CSS original.
+                const izquierdaPct = 0.2;
+                const anchoElementoPct = 6.5;
+                const centroX = (anchoRecuadro * (izquierdaPct / 100)) +
+                                (anchoRecuadro * (anchoElementoPct / 100) / 2);
+                const centroY = altoRecuadro / 2;
+
+                const fontSize = parseFloat(estilo.fontSize) || (anchoRecuadro * 0.022);
+                const fontFamily = estilo.fontFamily || 'Arial, Helvetica, sans-serif';
+                const fontWeight = estilo.fontWeight || '800';
+                const fontStyle = estilo.fontStyle || 'italic';
+                const color = estilo.color || '#000000';
+
+                // Escapado XML para que el texto nunca rompa el SVG.
+                const textoSVG = texto
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&apos;');
+
+                const fontFamilySVG = fontFamily.replace(/"/g, '&quot;');
+
+                /*
+                 * El texto se rota DENTRO del SVG. Por tanto html2canvas
+                 * captura una imagen ya girada y no necesita procesar la
+                 * transformación CSS problemática.
+                 */
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         width="${anchoRecuadro}"
+                         height="${altoRecuadro}"
+                         viewBox="0 0 ${anchoRecuadro} ${altoRecuadro}">
+                        <defs>
+                            <filter id="sombraCategoria"
+                                    x="-30%" y="-30%" width="160%" height="160%">
+                                <feDropShadow dx="${fontSize * 0.05}"
+                                              dy="${fontSize * 0.05}"
+                                              stdDeviation="${fontSize * 0.10}"
+                                              flood-color="#ffffff"
+                                              flood-opacity="0.90"/>
+                            </filter>
+                        </defs>
+                        <text x="${centroX}"
+                              y="${centroY}"
+                              text-anchor="middle"
+                              dominant-baseline="middle"
+                              transform="rotate(270 ${centroX} ${centroY})"
+                              fill="${color}"
+                              font-family="${fontFamilySVG}"
+                              font-size="${fontSize}px"
+                              font-weight="${fontWeight}"
+                              font-style="${fontStyle}"
+                              filter="url(#sombraCategoria)">${textoSVG}</text>
+                    </svg>
+                `;
+
+                const imagenCategoria = documentoClonado.createElement('img');
+                imagenCategoria.className = 'categoria-vertical-render';
+                imagenCategoria.alt = '';
+                imagenCategoria.src =
+                    'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+
+                // La imagen ocupa todo el recuadro y el SVG decide dónde va el texto.
+                imagenCategoria.style.position = 'absolute';
+                imagenCategoria.style.top = '0';
+                imagenCategoria.style.left = '0';
+                imagenCategoria.style.width = '100%';
+                imagenCategoria.style.height = '100%';
+                imagenCategoria.style.zIndex = '5';
+                imagenCategoria.style.pointerEvents = 'none';
+
+                // Ocultamos la versión CSS SOLO dentro del clon.
+                categoria.style.visibility = 'hidden';
+                categoria.insertAdjacentElement('afterend', imagenCategoria);
+            });
+        }
+
         async function capturarPaginaComoJPG() {
             const boton = document.getElementById('btnCapturarPagina');
             const textoBoton = document.getElementById('btnCapturarTexto');
@@ -2261,6 +2409,15 @@
                     y: 0,
                     scrollX: 0,
                     scrollY: 0,
+
+                    /*
+                     * onclone corrige las categorías verticales únicamente en
+                     * la copia que html2canvas utiliza para generar el JPG.
+                     */
+                    onclone: (documentoClonado) => {
+                        prepararCategoriasParaCaptura(documentoClonado);
+                    },
+
                     ignoreElements: (el) => el && el.classList && el.classList.contains('no-captura')
                 });
 
@@ -2286,6 +2443,13 @@
     </script>
 
     <script>
+        /*
+         * ================================================================
+         * GUARDAR HISTÓRICO (Historico.txt)
+         * ================================================================
+         * Usa File System Access API cuando está disponible y mantiene
+         * un fallback mediante localStorage + descarga del archivo.
+         */
         // ================== GUARDAR HISTÓRICO (Historico.txt) ==================
 
         const HIST_DB_NOMBRE = 'NouVoleiAlziraDB';
