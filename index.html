@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="format-detection" content="telephone=no">
-    <title>Nou Volei Alzira - Partidos de la semana</title>
+    <title>Nou Volei Alzira - Selección de Equipos</title>
     <!-- Librería SheetJS (XLSX) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <!-- Librería html2canvas -->
@@ -2559,7 +2559,7 @@
 
             if (!handle) {
                 handle = await window.showSaveFilePicker({
-                    suggestedName: 'Historico.txt',
+                    suggestedName: 'Partidos NVA.txt',
                     types: [{ description: 'Archivo de texto', accept: { 'text/plain': ['.txt'] } }]
                 });
                 await histGuardarHandle(handle);
@@ -2600,7 +2600,7 @@
             }
 
             const blob = new Blob([nuevoContenido], { type: 'text/plain;charset=utf-8' });
-            descargarBlobComoArchivo(blob, 'Historico.txt');
+            descargarBlobComoArchivo(blob, 'Partidos NVA.txt');
         }
 
         async function guardarHistorico() {
