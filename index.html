@@ -2559,7 +2559,7 @@
 
             if (!handle) {
                 handle = await window.showSaveFilePicker({
-                    suggestedName: 'Partidos NVA.txt',
+                    suggestedName: 'Historico.txt',
                     types: [{ description: 'Archivo de texto', accept: { 'text/plain': ['.txt'] } }]
                 });
                 await histGuardarHandle(handle);
@@ -2600,7 +2600,7 @@
             }
 
             const blob = new Blob([nuevoContenido], { type: 'text/plain;charset=utf-8' });
-            descargarBlobComoArchivo(blob, 'Partidos NVA.txt');
+            descargarBlobComoArchivo(blob, 'Historico.txt');
         }
 
         async function guardarHistorico() {
